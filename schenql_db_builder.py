@@ -6,10 +6,10 @@ import argparse
 import configparser
 import gzip
 import os
-import shutil
 import urllib.request
 
 import mysql.connector
+from lxml import etree
 
 
 class DBConnection:
@@ -29,18 +29,6 @@ def download_dblp(url, outpath):
     print("Downloading dblp.xml.gz...")
     urllib.request.urlretrieve(url, os.path.join(outpath, "dblp.xml.gz"))
     print("Downloading dblp DONE!")
-
-
-def unzip_dblp(path):
-    """
-    Unzip the dblp since it is gzipped
-    :param path: path to dblp.xml.gz
-    """
-    print("Extacting dblp.xml.gz...")
-    with gzip.open(os.path.join(path, "dblp.xml.gz"), 'rb') as f_in:
-        with open(os.path.join(path, "dblp.xml"), 'wb') as f_out:
-            shutil.copyfileobj(f_in, f_out)
-    print("Unzipping dblp.xml.gz DONE!")
 
 
 def cleanup_db(conn):
@@ -69,6 +57,9 @@ def build_db_from_dblp(conn, dblp_path):
     :param dblp_path: path to dblp.xml.gz
     """
     print("Parsing dblp data and feeding mysql databse. This may take a while...")
+    context = etree.iterparse(gzip.GzipFile(os.path.join(dblp_path, "dblp.xml.gz")))
+    for action, elem in context:
+        print("%s: %s" % (action, elem.tag))
     print("Building database DONE!")
     pass
 
@@ -97,12 +88,11 @@ def main():
     download = False
     if args.download:
         download = True
-    if not os.path.exists(os.path.join(outpath, "dblp.xml")):
+    if not os.path.exists(os.path.join(outpath, "dblp.xml.gz")):
         download = True
         print("DBLP file not available. Current version of DBLP will be downloaded.")
     if download:
         download_dblp(dblp_url, outpath)
-        unzip_dblp(outpath)
 
     # Connect to database
     db_connection = DBConnection(
