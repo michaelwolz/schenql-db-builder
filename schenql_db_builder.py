@@ -16,9 +16,8 @@ class DBConnection:
     def __init__(self, host, user, passwd, db):
         self.db_connection = mysql.connector.connect(host=host, user=user, passwd=passwd, database=db)
 
-
-def __del__(self):
-    self.db_connection.close()
+    def __del__(self):
+        self.db_connection.close()
 
 
 def download_dblp(url, outpath):
@@ -49,16 +48,16 @@ def cleanup_db(conn):
     Clean up the database for a new build
     :param conn: database connection
     """
-    cur1 = conn.cursor(buffered=True)
+    table_cur = conn.cursor(buffered=True)
     cur2 = conn.cursor()
     print("Cleaning up database...")
-    cur1.execute("SET FOREIGN_KEY_CHECKS = 0")
-    cur1.execute("SHOW TABLES")
-    for table in cur1:
+    table_cur.execute("SET FOREIGN_KEY_CHECKS = 0")
+    table_cur.execute("SHOW TABLES")
+    for table in table_cur:
         print("TRUNCATE TABLE " + table[0])
         cur2.execute("TRUNCATE TABLE " + table[0])
-    cur1.execute("SET FOREIGN_KEY_CHECKS = 1")
-    cur1.close()
+    table_cur.execute("SET FOREIGN_KEY_CHECKS = 1")
+    table_cur.close()
     cur2.close()
     print("Cleanup DONE!")
 
@@ -91,17 +90,19 @@ def main():
     # Reading config file
     config = configparser.ConfigParser()
     config.read("config.ini")
+    outpath = config["PATHS"]["OUTPATH"]
+    dblp_url = config["PATHS"]["DBLP-XML"]
 
     # Download data
     download = False
     if args.download:
         download = True
-    if not os.path.exists(os.path.join(config["PATHS"]["OUTPATH"], "dblp.xml")):
+    if not os.path.exists(os.path.join(outpath, "dblp.xml")):
         download = True
         print("DBLP file not available. Current version of DBLP will be downloaded.")
     if download:
-        download_dblp(config["PATHS"]["DBLP-XML"], config["PATHS"]["OUTPATH"])
-        unzip_dblp(config["PATHS"]["OUTPATH"])
+        download_dblp(dblp_url, outpath)
+        unzip_dblp(outpath)
 
     # Connect to database
     db_connection = DBConnection(
@@ -115,9 +116,9 @@ def main():
     cleanup_db(db_connection.db_connection)
 
     # Build database
-    build_db_from_dblp(db_connection.db_connection, config["PATHS"]["OUTPATH"])
-    add_inst_data(db_connection.db_connection, config["PATHS"]["OUTPATH"])
-    add_additional_data(db_connection.db_connection, config["PATHS"]["OUTPATH"])
+    build_db_from_dblp(db_connection.db_connection, outpath)
+    add_inst_data(db_connection.db_connection, outpath)
+    add_additional_data(db_connection.db_connection, outpath)
 
     # Verify database
 
