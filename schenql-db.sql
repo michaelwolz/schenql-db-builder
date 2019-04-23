@@ -25,10 +25,26 @@ DROP TABLE IF EXISTS `schenql-db`.`person` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`person` (
   `dblpKey` VARCHAR(50) NOT NULL,
-  `name` VARCHAR(200) NULL,
   `orcid` VARCHAR(20) NULL,
   `h-index` INT NULL,
   PRIMARY KEY (`dblpKey`))
+ENGINE = InnoDB;
+
+-- -----------------------------------------------------
+-- Table `schenql-db`.`person_names`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `schenql-db`.`person_names` ;
+
+CREATE TABLE IF NOT EXISTS `schenql-db`.`person_names` (
+  `name` VARCHAR(200) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `personKey` VARCHAR(200) NULL,
+  PRIMARY KEY (`name`),
+  INDEX `fk_personKey_idx` (`personKey` ASC),
+  CONSTRAINT `fk_personKey`
+    FOREIGN KEY (`personKey`)
+    REFERENCES `schenql-db`.`person` (`dblpKey`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
@@ -130,9 +146,25 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`journal` (
   `dblpKey` VARCHAR(50) NOT NULL,
   `acronym` VARCHAR(10) NULL,
   `volume` VARCHAR(10) NULL,
-  `issue` VARCHAR(100) NULL,
-  `timestamp` DATETIME NULL,
   PRIMARY KEY (`dblpKey`))
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `schenql-db`.`journal_name`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `schenql-db`.`journal_name` ;
+
+CREATE TABLE IF NOT EXISTS `schenql-db`.`journal_name` (
+  `name`VARCHAR(200) NULL,
+  `journalKey` VARCHAR(50) NULL,
+  PRIMARY KEY (`name`),
+  INDEX `fk_journalKey_idx` (`journalKey`ASC),
+  CONSTRAINT `fk_journalKey`
+    FOREIGN KEY (`journalKey`)
+    REFERENCES `schenql-db`.`journal` (`dblpKey`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 
@@ -144,12 +176,12 @@ DROP TABLE IF EXISTS `schenql-db`.`publication` ;
 CREATE TABLE IF NOT EXISTS `schenql-db`.`publication` (
   `dblpKey` VARCHAR(50) NOT NULL,
   `title` VARCHAR(200) NULL,
-  `doi` VARCHAR(200) NULL,
-  `url` VARCHAR(255) NULL,
   `ee` VARCHAR(200) NULL,
+  `url` VARCHAR(255) NULL,
   `year` INT NULL,
-  `conference_dblpKey` VARCHAR(50) NOT NULL,
-  `journal_dblpKey` VARCHAR(50) NOT NULL,
+  `volume` VARCHAR(50) NULL,
+  `conference_dblpKey` VARCHAR(50) NULL,
+  `journal_dblpKey` VARCHAR(50) NULL,
   PRIMARY KEY (`dblpKey`),
   INDEX `fk_publication_conference_idx` (`conference_dblpKey` ASC),
   INDEX `fk_publication_journal_idx` (`journal_dblpKey` ASC),

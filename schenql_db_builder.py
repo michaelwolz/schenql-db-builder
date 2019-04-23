@@ -7,6 +7,7 @@ import configparser
 import gzip
 import os
 import urllib.request
+import re
 
 import mysql.connector
 from lxml import etree
@@ -56,19 +57,190 @@ def build_db_from_dblp(conn, dblp_path):
     :param conn: database connection
     :param dblp_path: path to dblp.xml.gz
     """
-    print("Parsing dblp data and feeding mysql databse. This may take a while...")
-    context = etree.iterparse(gzip.GzipFile(os.path.join(dblp_path, "dblp.xml.gz")))
-    for action, elem in context:
-        print("%s: %s" % (action, elem.tag))
+    print("Parsing dblp data and feeding mysql database. This may take a while...")
+    # Add all persons to db
+    # add_person_records_to_db(conn, dblp_path)
+    print("All person records added to the database.")
+    # Add publications to db
+    add_publications_to_db(conn, dblp_path)
+    print("All publications added to the database.")
+
     print("Building database DONE!")
-    pass
+
+
+def add_person_records_to_db(conn, dblp_path):
+    """
+    Parses the dblp file one time to extract all person-records (www-tags) and add them to the database
+    :param conn: database connection
+    :param dblp_path: path to the dblp.xml
+    """
+    print("Adding person records...")
+    counter = 0
+    cur = conn.cursor()
+    context = etree.iterparse(gzip.GzipFile(os.path.join(dblp_path, "dblp.xml.gz")), tag="www", load_dtd=True)
+    for _, elem in context:
+        counter += 1
+        if counter % 1000 == 0:
+            print("Entry: ", counter)
+
+        dblp_key = elem.get("key")
+        if dblp_key and dblp_key.startswith("homepages/"):
+            authors = elem.findall("author")
+            orcid = None
+            # Trying to find orcid for author !!! DOESNT WORK SINCE orcid is not available in www-tag !!!
+            # for author in authors:
+            #     orcid = author.get("orcid")
+            #     if orcid:
+            #         break
+            # if not orcid:
+            #     orcid = None
+
+            # Add person record to database
+            query = """INSERT INTO `person` (`dblpKey`) VALUES (%s, %s)"""
+            cur.execute(query, (dblp_key,))
+            conn.commit()
+
+            # Add all available names to person record
+            for author in authors:
+                query = """INSERT INTO `person_names` (`name`, `personKey`) VALUES (%s, %s)"""
+                cur.execute(query, (author.text, dblp_key))
+                conn.commit()
+
+            # Add institutions
+        elem.clear()
+    cur.close()
+
+
+def add_publications_to_db(conn, dblp_path):
+    """
+    Parses the dblp file a second time and extracts all publications
+    :param conn: database connection
+    :param dblp_path: path to the dblp.xml
+    """
+    print("Adding publications...")
+    counter = 0
+    cur = conn.cursor()
+    # TODO: Add master and phdthesises
+    context = etree.iterparse(gzip.GzipFile(os.path.join(dblp_path, "dblp.xml.gz")),
+                              tag=('article', 'inproceedings', 'proceedings'), load_dtd=True)
+    for _, elem in context:
+        counter += 1
+        if counter % 1000 == 0:
+            print("Entry: ", counter)
+
+        dblp_key = elem.get('key')
+
+        title = None
+        ee = None
+        url = None
+        year = None
+        conference_key = None
+        journal_key = None
+        volume = None
+
+        if elem.find("title") is not None:
+            title = elem.find("title").text
+        if elem.find("ee") is not None:
+            ee = elem.find("ee").text
+        if elem.find("url") is not None:
+            url = elem.find("url").text
+        if elem.find("year") is not None:
+            year = int(elem.find("year").text)
+        if elem.find("volume") is not None:
+            volume = elem.find("volume").text
+
+        if elem.find("journal") is not None:
+            journal = elem.find("journal").text
+            if url:
+                journal_key = re.search("db/(.*)/.*", url).group(1)
+            elif dblp_key.startswith("journal"):
+                journal_key = dblp_key.rsplit("/", 1)[0]
+
+            acronym = journal_key.rsplit("/", 1)[1]
+
+            # Add journal to database if not exist
+            query = """SELECT `dblpKey` from `journal` 
+                    WHERE `dblpKey` = %s"""
+            cur.execute(query, (journal_key,))
+            result = cur.fetchone()
+            if not result:
+                query = """INSERT INTO `journal` 
+                        (`dblpKey`, `acronym`) 
+                        VALUES (%s, %s)"""
+                cur.execute(query, (journal_key, acronym))
+                conn.commit()
+
+                # Check if journal name already exists otherwise add it
+                query = """SELECT `journalKey` from `journal_name` 
+                        WHERE `journalKey` = %s AND `name` = %s"""
+                cur.execute(query, (journal_key, journal))
+                result = cur.fetchone()
+                if not result:
+                    query = """INSERT INTO `journal_name` 
+                               (`name`, `journalKey`) 
+                               VALUES (%s, %s)"""
+                    cur.execute(query, (journal, journal_key))
+                    conn.commit()
+
+        if elem.tag == "inproceedings" or elem.tag == "proceedings":
+            conference_key = dblp_key.rsplit("/", 1)[0]
+
+        authors = elem.findall("author")
+        editors = elem.findall("editors")
+
+        # Adding the publication to the database
+        if dblp_key:
+            query = """INSERT IGNORE INTO `publication` 
+                    (`dblpKey`, `title`, `ee`, `url`, `year`, `volume`, `conference_dblpKey`, `journal_dblpKey`) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+            cur.execute(query, (dblp_key, title, ee, url, year, volume, conference_key, journal_key))
+            conn.commit()
+
+            # Adding authors to the publication
+            add_persons_to_publication(conn, cur, "author", authors, dblp_key)
+
+            # Adding editors to the publication
+            add_persons_to_publication(conn, cur, "editor", editors, dblp_key)
+
+        elem.clear()
+    cur.close()
+
+
+def add_persons_to_publication(conn, cur, type, persons, dblp_key):
+    """
+    Connects a person record to a publication in the database
+    :param conn: connection to database
+    :param cur: cursor
+    :param type: 'author' or 'editor'
+    :param persons: list of persons to add
+    :param dblp_key: dblp_key of the publication to connect to
+    """
+    for person in persons:
+        query = """SELECT `dblpKey` FROM `person` 
+                INNER JOIN `person_names` 
+                ON `person_names`.`personKey` = `person`.`dblpKey`
+                WHERE `person_names`.`name` = %s"""
+        cur.execute(query, (person.text,))
+        person_key = cur.fetchone()
+        if person_key:
+            person_key = person_key[0]
+            if type == "author":
+                query = """INSERT INTO `person_authored_publication` (`personKey`, `publicationKey`) 
+                        VALUES (%s, %s)"""
+            elif type == "editor":
+                query = """INSERT INTO `person_edited_publication` (`personKey`, `publicationKey`) 
+                        VALUES (%s, %s)"""
+            cur.execute(query, (person_key, dblp_key))
+            conn.commit()
+        else:
+            print("Error: Author or Editor not found in person table!")
 
 
 def add_inst_data(conn, inst_path):
     pass
 
 
-def add_additional_data(conn, path):
+def add_s2_data(conn, path):
     pass
 
 
@@ -103,14 +275,12 @@ def main():
     )
 
     # Cleanup database
-    cleanup_db(db_connection.db_connection)
+    # cleanup_db(db_connection.db_connection)
 
     # Build database
     build_db_from_dblp(db_connection.db_connection, outpath)
     add_inst_data(db_connection.db_connection, outpath)
-    add_additional_data(db_connection.db_connection, outpath)
-
-    # Verify database
+    add_inst_data(db_connection.db_connection, outpath)
 
 
 if __name__ == '__main__':
