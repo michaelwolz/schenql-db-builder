@@ -6,8 +6,10 @@ import argparse
 import configparser
 import gzip
 import os
-import urllib.request
 import re
+import urllib.request
+import time
+import progressbar
 
 import mysql.connector
 from lxml import etree
@@ -62,7 +64,7 @@ def build_db_from_dblp(conn, dblp_path):
     add_person_records_to_db(conn, dblp_path)
     print("All person records added to the database.")
     # Add publications to db
-    add_publications_to_db(conn, dblp_path)
+    # add_publications_to_db(conn, dblp_path)
     print("All publications added to the database.")
 
     print("Building database DONE!")
@@ -74,41 +76,52 @@ def add_person_records_to_db(conn, dblp_path):
     :param conn: database connection
     :param dblp_path: path to the dblp.xml
     """
-    print("Adding person records...")
+    print("Collecting person records...")
     counter = 0
     cur = conn.cursor()
     context = etree.iterparse(gzip.GzipFile(os.path.join(dblp_path, "dblp.xml.gz")), tag="www", load_dtd=True)
+    person_keys = []
+    person_names = []
     for _, elem in context:
         counter += 1
         if counter % 10000 == 0:
-            print("Entry: ", counter)
+            print("Processed entry: ", counter)
 
         dblp_key = elem.get("key")
         if dblp_key and dblp_key.startswith("homepages/"):
-            authors = elem.findall("author")
-            # Trying to find orcid for author !!! DOESNT WORK SINCE orcid is not available in www-tag !!!
-            # orcid = None
-            # for author in authors:
-            #     orcid = author.get("orcid")
-            #     if orcid:
-            #         break
-            # if not orcid:
-            #     orcid = None
-
-            # Add person record to database
-            query = """INSERT INTO `person` (`dblpKey`) VALUES (%s)"""
-            cur.execute(query, (dblp_key,))
-            conn.commit()
+            persons = elem.findall("author")
+            person_keys.append((dblp_key,))
 
             # Add all available names to person record
-            for author in authors:
-                query = """INSERT INTO `person_names` (`name`, `personKey`) VALUES (%s, %s)"""
-                cur.execute(query, (author.text, dblp_key))
-                conn.commit()
+            for person in persons:
+                person_names.append((person.text, dblp_key))
 
             # Add institutions
         elem.clear()
     cur.close()
+
+    print("Inserting authors to the database...")
+    print("Author keys:")
+    # Adding records to the database
+    with progressbar.ProgressBar(max_value=len(person_keys)) as bar:
+        for i in range(0, len(person_keys), 500):
+            step = 499
+            if i + step > len(person_keys) - 1:
+                step -= (i + step)
+            query = """INSERT INTO `person` (`dblpKey`) VALUES (%s)"""
+            cur.executemany(query, person_keys[i:i + step])
+            conn.commit()
+            bar.update(i)
+    print("Author names:")
+    with progressbar.ProgressBar(max_value=len(person_keys)) as bar:
+        for i in range(0, len(person_names), 500):
+            step = 499
+            if i + step > len(person_names) - 1:
+                step -= (i + step)
+            query = """INSERT INTO `person_names` (`name`, `personKey`) VALUES (%s, %s)"""
+            cur.executemany(query, person_names[i:i + step])
+            conn.commit()
+            bar.update(i)
 
 
 def add_publications_to_db(conn, dblp_path):
@@ -122,7 +135,7 @@ def add_publications_to_db(conn, dblp_path):
     cur = conn.cursor()
     # TODO: Add master and phdthesises
     context = etree.iterparse(gzip.GzipFile(os.path.join(dblp_path, "dblp.xml.gz")),
-                              tag=('article', 'inproceedings', 'proceedings'), load_dtd=True)
+                              tag=('article', 'inproceedings'), load_dtd=True)
     for _, elem in context:
         counter += 1
         if counter % 10000 == 0:
@@ -304,12 +317,18 @@ def main():
     )
 
     # Cleanup database
-    # cleanup_db(db_connection.db_connection)
+    cleanup_db(db_connection.db_connection)
 
     # Build database
-    # build_db_from_dblp(db_connection.db_connection, data_path)
+    start = time.time()
+    print("Start %s" % (time.ctime()))
+
+    build_db_from_dblp(db_connection.db_connection, data_path)
     add_inst_data(db_connection.db_connection, data_path)
     add_s2_data(db_connection.db_connection, data_path)
+
+    end = time.time()
+    print("Time spent:", end - start, "s")
 
 
 if __name__ == '__main__':
