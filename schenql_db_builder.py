@@ -21,14 +21,14 @@ class DBConnection:
         self.db_connection.close()
 
 
-def download_dblp(url, outpath):
+def download_dblp(url, data_path):
     """
-    Downloading the dblp.xml.gz to the specified outpath for further processing
+    Downloading the dblp.xml.gz to the specified data_path for further processing
     :param url: URL to the dblp.xml.gz file (probably: https://dblp.uni-trier.de/xml/dblp.xml.gz)
-    :param outpath: Path where the dblp.xml.gz file is saved to
+    :param data_path: Path where the dblp.xml.gz file is saved to
     """
     print("Downloading dblp.xml.gz...")
-    urllib.request.urlretrieve(url, os.path.join(outpath, "dblp.xml.gz"))
+    urllib.request.urlretrieve(url, os.path.join(data_path, "dblp.xml.gz"))
     print("Downloading dblp DONE!")
 
 
@@ -59,7 +59,7 @@ def build_db_from_dblp(conn, dblp_path):
     """
     print("Parsing dblp data and feeding mysql database. This may take a while...")
     # Add all persons to db
-    # add_person_records_to_db(conn, dblp_path)
+    add_person_records_to_db(conn, dblp_path)
     print("All person records added to the database.")
     # Add publications to db
     add_publications_to_db(conn, dblp_path)
@@ -80,14 +80,14 @@ def add_person_records_to_db(conn, dblp_path):
     context = etree.iterparse(gzip.GzipFile(os.path.join(dblp_path, "dblp.xml.gz")), tag="www", load_dtd=True)
     for _, elem in context:
         counter += 1
-        if counter % 1000 == 0:
+        if counter % 10000 == 0:
             print("Entry: ", counter)
 
         dblp_key = elem.get("key")
         if dblp_key and dblp_key.startswith("homepages/"):
             authors = elem.findall("author")
-            orcid = None
             # Trying to find orcid for author !!! DOESNT WORK SINCE orcid is not available in www-tag !!!
+            # orcid = None
             # for author in authors:
             #     orcid = author.get("orcid")
             #     if orcid:
@@ -96,7 +96,7 @@ def add_person_records_to_db(conn, dblp_path):
             #     orcid = None
 
             # Add person record to database
-            query = """INSERT INTO `person` (`dblpKey`) VALUES (%s, %s)"""
+            query = """INSERT INTO `person` (`dblpKey`) VALUES (%s)"""
             cur.execute(query, (dblp_key,))
             conn.commit()
 
@@ -125,7 +125,7 @@ def add_publications_to_db(conn, dblp_path):
                               tag=('article', 'inproceedings', 'proceedings'), load_dtd=True)
     for _, elem in context:
         counter += 1
-        if counter % 1000 == 0:
+        if counter % 10000 == 0:
             print("Entry: ", counter)
 
         dblp_key = elem.get('key')
@@ -151,42 +151,53 @@ def add_publications_to_db(conn, dblp_path):
 
         if elem.find("journal") is not None:
             journal = elem.find("journal").text
-            if url:
-                journal_key = re.search("db/(.*)/.*", url).group(1)
-            elif dblp_key.startswith("journal"):
-                journal_key = dblp_key.rsplit("/", 1)[0]
+            # Use the url tag if its available and starts with "db/journals"
+            if url and url.startswith("db/journals/"):
+                result = re.search("db/(.*)/.*", url)
+                if result:
+                    journal_key = result.group(1)
+            elif dblp_key.startswith("journals"):
+                try:
+                    journal_key = dblp_key.rsplit("/", 1)[0]
+                except IndexError:
+                    print("Error finding journal key for journal", journal)
 
-            acronym = journal_key.rsplit("/", 1)[1]
+            if journal_key:
+                try:
+                    acronym = journal_key.rsplit("/", 1)[1]
+                except IndexError:
+                    print("Error: ", journal_key)
+                    acronym = None
 
-            # Add journal to database if not exist
-            query = """SELECT `dblpKey` from `journal` 
-                    WHERE `dblpKey` = %s"""
-            cur.execute(query, (journal_key,))
-            result = cur.fetchone()
-            if not result:
-                query = """INSERT INTO `journal` 
-                        (`dblpKey`, `acronym`) 
-                        VALUES (%s, %s)"""
-                cur.execute(query, (journal_key, acronym))
-                conn.commit()
-
-                # Check if journal name already exists otherwise add it
-                query = """SELECT `journalKey` from `journal_name` 
-                        WHERE `journalKey` = %s AND `name` = %s"""
-                cur.execute(query, (journal_key, journal))
+                # Add journal to database if not exist
+                query = """SELECT `dblpKey` from `journal` 
+                        WHERE `dblpKey` = %s"""
+                cur.execute(query, (journal_key,))
                 result = cur.fetchone()
                 if not result:
-                    query = """INSERT INTO `journal_name` 
-                               (`name`, `journalKey`) 
-                               VALUES (%s, %s)"""
-                    cur.execute(query, (journal, journal_key))
+                    query = """INSERT INTO `journal` 
+                            (`dblpKey`, `acronym`) 
+                            VALUES (%s, %s)"""
+                    cur.execute(query, (journal_key, acronym))
                     conn.commit()
+
+                    # Check if journal name already exists otherwise add it
+                    query = """SELECT `journalKey` from `journal_name` 
+                            WHERE `journalKey` = %s AND `name` = %s"""
+                    cur.execute(query, (journal_key, journal))
+                    result = cur.fetchone()
+                    if not result:
+                        query = """INSERT INTO `journal_name` 
+                                   (`name`, `journalKey`) 
+                                   VALUES (%s, %s)"""
+                        cur.execute(query, (journal, journal_key))
+                        conn.commit()
 
         if elem.tag == "inproceedings" or elem.tag == "proceedings":
             conference_key = dblp_key.rsplit("/", 1)[0]
 
         authors = elem.findall("author")
-        editors = elem.findall("editors")
+        editors = elem.findall("editor")
 
         # Adding the publication to the database
         if dblp_key:
@@ -225,10 +236,10 @@ def add_persons_to_publication(conn, cur, type, persons, dblp_key):
         if person_key:
             person_key = person_key[0]
             if type == "author":
-                query = """INSERT INTO `person_authored_publication` (`personKey`, `publicationKey`) 
+                query = """INSERT IGNORE INTO `person_authored_publication` (`personKey`, `publicationKey`) 
                         VALUES (%s, %s)"""
             elif type == "editor":
-                query = """INSERT INTO `person_edited_publication` (`personKey`, `publicationKey`) 
+                query = """INSERT IGNORE INTO `person_edited_publication` (`personKey`, `publicationKey`) 
                         VALUES (%s, %s)"""
             cur.execute(query, (person_key, dblp_key))
             conn.commit()
@@ -253,18 +264,18 @@ def main():
     # Reading config file
     config = configparser.ConfigParser()
     config.read("config.ini")
-    outpath = config["PATHS"]["OUTPATH"]
+    data_path = config["PATHS"]["DATA-PATH"]
     dblp_url = config["PATHS"]["DBLP-XML"]
 
     # Download data
     download = False
     if args.download:
         download = True
-    if not os.path.exists(os.path.join(outpath, "dblp.xml.gz")):
+    if not os.path.exists(os.path.join(data_path, "dblp.xml.gz")):
         download = True
         print("DBLP file not available. Current version of DBLP will be downloaded.")
     if download:
-        download_dblp(dblp_url, outpath)
+        download_dblp(dblp_url, data_path)
 
     # Connect to database
     db_connection = DBConnection(
@@ -278,9 +289,9 @@ def main():
     # cleanup_db(db_connection.db_connection)
 
     # Build database
-    build_db_from_dblp(db_connection.db_connection, outpath)
-    add_inst_data(db_connection.db_connection, outpath)
-    add_inst_data(db_connection.db_connection, outpath)
+    # build_db_from_dblp(db_connection.db_connection, data_path)
+    add_inst_data(db_connection.db_connection, data_path)
+    add_s2_data(db_connection.db_connection, data_path)
 
 
 if __name__ == '__main__':

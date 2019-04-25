@@ -156,9 +156,10 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`journal_name` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`journal_name` (
-  `name`VARCHAR(200) NULL,
+  `id` INT NOT NULL,
+  `name` VARCHAR(200) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL AUTO_INCREMENT,
   `journalKey` VARCHAR(50) NULL,
-  PRIMARY KEY (`name`),
+  PRIMARY KEY (`id`),
   INDEX `fk_journalKey_idx` (`journalKey`ASC),
   CONSTRAINT `fk_journalKey`
     FOREIGN KEY (`journalKey`)
