@@ -90,11 +90,12 @@ def add_person_records_to_db(conn, dblp_path):
         dblp_key = elem.get("key")
         if dblp_key and dblp_key.startswith("homepages/"):
             persons = elem.findall("author")
-            person_keys.append((dblp_key,))
+            # person_keys.append((dblp_key,))
 
             # Add all available names to person record
             for person in persons:
-                person_names.append((person.text, dblp_key))
+                pass
+                # person_names.append((person.text, dblp_key))
 
             # Add institutions
         elem.clear()
@@ -136,6 +137,12 @@ def add_publications_to_db(conn, dblp_path):
     # TODO: Add master and phdthesises
     context = etree.iterparse(gzip.GzipFile(os.path.join(dblp_path, "dblp.xml.gz")),
                               tag=('article', 'inproceedings'), load_dtd=True)
+
+    journals = {}
+    journal_names = {}
+    conferences = {}
+    publications = {}
+
     for _, elem in context:
         counter += 1
         if counter % 10000 == 0:
