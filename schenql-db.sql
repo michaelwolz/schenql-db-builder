@@ -102,13 +102,13 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`conference` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`conference` (
-  `dblpKey` VARCHAR(50) NOT NULL,
-  `acronym` VARCHAR(10) NULL,
+  `dblpKey` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
+  `acronym` VARCHAR(50) NULL,
   `corerank` VARCHAR(3) NULL,
-  `continent_id` INT NOT NULL,
-  `country_id` INT NOT NULL,
-  `state_id` INT NOT NULL,
-  `city_id` INT NOT NULL,
+  `continent_id` INT NULL,
+  `country_id` INT NULL,
+  `state_id` INT NULL,
+  `city_id` INT NULL,
   PRIMARY KEY (`dblpKey`),
   INDEX `fk_conference_continent_idx` (`continent_id` ASC),
   INDEX `fk_conference_country_idx` (`country_id` ASC),
@@ -144,8 +144,7 @@ DROP TABLE IF EXISTS `schenql-db`.`journal` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`journal` (
   `dblpKey` VARCHAR(50) NOT NULL,
-  `acronym` VARCHAR(10) NULL,
-  `volume` VARCHAR(10) NULL,
+  `acronym` VARCHAR(50) NULL,
   PRIMARY KEY (`dblpKey`))
 ENGINE = InnoDB;
 
@@ -181,7 +180,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`publication` (
   `url` VARCHAR(255) NULL,
   `year` INT NULL,
   `volume` VARCHAR(50) NULL,
-  `conference_dblpKey` VARCHAR(50) NULL,
+  `conference_dblpKey` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_bin NULL,
   `journal_dblpKey` VARCHAR(50) NULL,
   PRIMARY KEY (`dblpKey`),
   INDEX `fk_publication_conference_idx` (`conference_dblpKey` ASC),
@@ -315,10 +314,10 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`instituion` (
   `key` VARCHAR(50) NOT NULL,
   `name` VARCHAR(100) NULL,
   `type` ENUM('eins', 'zwei') NULL,
-  `continent_id` INT NOT NULL,
-  `country_id` INT NOT NULL,
-  `state_id` INT NOT NULL,
-  `city_id` INT NOT NULL,
+  `continent_id` INT NULL,
+  `country_id` INT NULL,
+  `state_id` INT NULL,
+  `city_id` INT NULL,
   PRIMARY KEY (`key`),
   INDEX `fk_instituion_state_idx` (`state_id` ASC),
   INDEX `fk_instituion_city_idx` (`city_id` ASC),
