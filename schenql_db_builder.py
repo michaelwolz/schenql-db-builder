@@ -90,12 +90,11 @@ def add_person_records_to_db(conn, dblp_path):
         dblp_key = elem.get("key")
         if dblp_key and dblp_key.startswith("homepages/"):
             persons = elem.findall("author")
-            # person_keys.append((dblp_key,))
+            person_keys.append((dblp_key,))
 
             # Add all available names to person record
             for person in persons:
-                pass
-                # person_names.append((person.text, dblp_key))
+                person_names.append((person.text, dblp_key))
 
             # Add institutions
         elem.clear()
@@ -138,10 +137,10 @@ def add_publications_to_db(conn, dblp_path):
     context = etree.iterparse(gzip.GzipFile(os.path.join(dblp_path, "dblp.xml.gz")),
                               tag=('article', 'inproceedings'), load_dtd=True)
 
-    journals = {}
-    journal_names = {}
-    conferences = {}
-    publications = {}
+    journal_key_dict = {}
+    journal_name_dict = {}
+    conferences_dict = {}
+    publications_dict = {}
 
     for _, elem in context:
         counter += 1
@@ -189,23 +188,13 @@ def add_publications_to_db(conn, dblp_path):
                     print("Error: ", journal_key)
                     acronym = None
 
-                # Add journal to database if not exist
-                query = """SELECT `dblpKey` from `journal` WHERE `dblpKey` = %s"""
-                cur.execute(query, (journal_key,))
-                result = cur.fetchone()
-                if not result:
-                    query = """INSERT INTO `journal` (`dblpKey`, `acronym`) VALUES (%s, %s)"""
-                    cur.execute(query, (journal_key, acronym))
-                    conn.commit()
+                # Add journal if not exist
+                if journal_key not in journal_key_dict:
+                    journal_key_dict[journal_key] = (journal_key, acronym)
 
-                    # Check if journal name already exists otherwise add it
-                    query = """SELECT `journalKey` from `journal_name` WHERE `journalKey` = %s AND `name` = %s"""
-                    cur.execute(query, (journal_key, journal))
-                    result = cur.fetchone()
-                    if not result:
-                        query = """INSERT INTO `journal_name` (`name`, `journalKey`) VALUES (%s, %s)"""
-                        cur.execute(query, (journal, journal_key))
-                        conn.commit()
+                # Check if journal name already exists otherwise add it
+                if journal not in journal_name_dict:
+                    journal_name_dict[journal] = (journal, journal_key)
 
         if elem.tag == "inproceedings" or elem.tag == "proceedings":
             if url and url.startswith("db/conf/"):
@@ -252,6 +241,30 @@ def add_publications_to_db(conn, dblp_path):
             add_persons_to_publication(conn, cur, "editor", editors, dblp_key)
 
         elem.clear()
+
+        # Adding journals to the database
+        with progressbar.ProgressBar(max_value=len(journal_key_dict)) as bar:
+            for i in range(0, len(journal_key_dict), 500):
+                step = 499
+                if i + step > len(journal_key_dict) - 1:
+                    step -= (i + step)
+                query = """INSERT INTO `journal` (`dblpKey`, `acronym`) VALUES (%s, %s)"""
+                cur.executemany(query, journal_key_dict[i:i + step])
+                conn.commit()
+                bar.update(i)
+
+        with progressbar.ProgressBar(max_value=len(journal_name_dict)) as bar:
+            for i in range(0, len(journal_name_dict), 500):
+                step = 499
+                if i + step > len(journal_name_dict) - 1:
+                    step -= (i + step)
+                query = """INSERT INTO `journal_name` (`name`, `journalKey`) VALUES (%s, %s)"""
+                cur.executemany(query, journal_name_dict[i:i + step])
+                conn.commit()
+                bar.update(i)
+
+        # Adding conferences to the database
+
     cur.close()
 
 
