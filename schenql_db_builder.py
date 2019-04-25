@@ -170,31 +170,49 @@ def add_publications_to_db(conn, dblp_path):
                     acronym = None
 
                 # Add journal to database if not exist
-                query = """SELECT `dblpKey` from `journal` 
-                        WHERE `dblpKey` = %s"""
+                query = """SELECT `dblpKey` from `journal` WHERE `dblpKey` = %s"""
                 cur.execute(query, (journal_key,))
                 result = cur.fetchone()
                 if not result:
-                    query = """INSERT INTO `journal` 
-                            (`dblpKey`, `acronym`) 
-                            VALUES (%s, %s)"""
+                    query = """INSERT INTO `journal` (`dblpKey`, `acronym`) VALUES (%s, %s)"""
                     cur.execute(query, (journal_key, acronym))
                     conn.commit()
 
                     # Check if journal name already exists otherwise add it
-                    query = """SELECT `journalKey` from `journal_name` 
-                            WHERE `journalKey` = %s AND `name` = %s"""
+                    query = """SELECT `journalKey` from `journal_name` WHERE `journalKey` = %s AND `name` = %s"""
                     cur.execute(query, (journal_key, journal))
                     result = cur.fetchone()
                     if not result:
-                        query = """INSERT INTO `journal_name` 
-                                   (`name`, `journalKey`) 
-                                   VALUES (%s, %s)"""
+                        query = """INSERT INTO `journal_name` (`name`, `journalKey`) VALUES (%s, %s)"""
                         cur.execute(query, (journal, journal_key))
                         conn.commit()
 
         if elem.tag == "inproceedings" or elem.tag == "proceedings":
-            conference_key = dblp_key.rsplit("/", 1)[0]
+            if url and url.startswith("db/conf/"):
+                result = re.search("db/(.*)/.*", url)
+                if result:
+                    conference_key = result.group(1)
+            elif dblp_key.startswith("conf"):
+                try:
+                    conference_key = dblp_key.rsplit("/", 1)[0]
+                except IndexError:
+                    print("Error finding conference key for journal", dblp_key)
+
+            if conference_key:
+                try:
+                    acronym = conference_key.rsplit("/", 1)[1]
+                except IndexError:
+                    print("Error: ", conference_key)
+                    acronym = None
+
+                # Add conference to database if not exist
+                query = """SELECT `dblpKey` from `conference` WHERE `dblpKey` = %s"""
+                cur.execute(query, (conference_key,))
+                result = cur.fetchone()
+                if not result:
+                    query = """INSERT INTO `conference` (`dblpKey`, `acronym`) VALUES (%s, %s)"""
+                    cur.execute(query, (conference_key, acronym))
+                    conn.commit()
 
         authors = elem.findall("author")
         editors = elem.findall("editor")
