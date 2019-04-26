@@ -329,11 +329,8 @@ def add_s2_data(data_path):
     with progressbar.ProgressBar(max_value=len(pub_references_pub2)) as bar:
         for i in range(0, len(pub_references_pub2), BATCH_SIZE):
             query = """INSERT INTO `publication_references` (`pub_id`, `pub2_id`) VALUES (%s, %s)"""
-            try:
-                cur.executemany(query, pub_references_pub2[i:i + BATCH_SIZE])
-                db_connection.commit()
-            except Exception as e:
-                print("Somethign went wrong.")
+            cur.executemany(query, pub_references_pub2[i:i + BATCH_SIZE])
+            db_connection.commit()
             bar.update(i)
     cur.close()
 
