@@ -180,6 +180,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`publication` (
   `url` VARCHAR(255) NULL,
   `year` INT NULL,
   `volume` VARCHAR(50) NULL,
+  `type` ENUM('article', 'masterthesis', 'inproceedings', 'phdthesis') NULL,
   `conference_dblpKey` VARCHAR(50) CHARACTER SET utf8 COLLATE utf8_bin NULL,
   `journal_dblpKey` VARCHAR(50) NULL,
   PRIMARY KEY (`dblpKey`),

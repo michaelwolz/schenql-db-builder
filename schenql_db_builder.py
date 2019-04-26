@@ -14,10 +14,14 @@ import mysql.connector
 import progressbar
 from lxml import etree
 
+# Defines how many SQL Insert statements will be executed at once
 BATCH_SIZE = 10000
 
 
 class DBConnection:
+    """
+    Connection to the database
+    """
     def __init__(self, host, user, passwd, db):
         self.db_connection = mysql.connector.connect(host=host, user=user, passwd=passwd, database=db)
 
@@ -44,15 +48,15 @@ def cleanup_db(conn):
     table_cur = conn.cursor(buffered=True)
     cur2 = conn.cursor()
     print("Cleaning up database...")
-    table_cur.execute("SET FOREIGN_KEY_CHECKS = 0")
-    table_cur.execute("SHOW TABLES")
+    table_cur.execute("""SET FOREIGN_KEY_CHECKS = 0""")
+    table_cur.execute("""SHOW TABLES""")
     for table in table_cur:
-        print("TRUNCATE TABLE " + table[0])
-        cur2.execute("TRUNCATE TABLE " + table[0])
-    table_cur.execute("SET FOREIGN_KEY_CHECKS = 1")
+        print("""TRUNCATE TABLE """ + table[0])
+        cur2.execute("""TRUNCATE TABLE """ + table[0])
+    table_cur.execute("""SET FOREIGN_KEY_CHECKS = 1""")
     table_cur.close()
     cur2.close()
-    print("Cleanup DONE!")
+    print("""Cleanup DONE!""")
 
 
 def build_db_from_dblp(conn, dblp_path):
@@ -68,6 +72,10 @@ def build_db_from_dblp(conn, dblp_path):
 
 
 def process_dblp_file(dblp_path):
+    """
+    Processes the dblp file. Important data will be loaded into memory to reduce the amount of SQL Statements.
+    :param dblp_path: Path to the dblp.xml.gz
+    """
     print("Processing dblp file...")
 
     journal_key_dict = {}
@@ -80,7 +88,7 @@ def process_dblp_file(dblp_path):
     person_names = {}
 
     context = etree.iterparse(gzip.GzipFile(os.path.join(dblp_path, "dblp.xml.gz")),
-                              tag=("article", "inproceedings", "www"), load_dtd=True)
+                              tag=("article", "masterthesis", "phdthesis", "inproceedings", "www"), load_dtd=True)
     bar = progressbar.ProgressBar(max_value=progressbar.UnknownLength)
     counter = 0
 
@@ -89,9 +97,10 @@ def process_dblp_file(dblp_path):
         bar.update(counter)
 
         dblp_key = elem.get("key")
+        type = elem.tag
 
         # Processing publications
-        if elem.tag in ("article", "inproceedings"):
+        if elem.tag in ("article", "inproceedings", "masterthesis", "phdthesis"):
             title = elem.find("title").text if elem.find("title") is not None else None
             ee = elem.find("ee").text if elem.find("ee") is not None else None
             url = elem.find("url").text if elem.find("url") is not None else None
@@ -154,7 +163,7 @@ def process_dblp_file(dblp_path):
             editors = elem.findall("editor")
 
             # Adding the publications
-            publications.append((dblp_key, title, ee, url, year, volume, conference_key, journal_key))
+            publications.append((dblp_key, title, ee, url, year, volume, type, conference_key, journal_key))
 
             # Adding authors to the publication
             for person in authors:
@@ -189,25 +198,37 @@ def process_dblp_file(dblp_path):
 
 def add_dblp_data_to_database(conn, person_keys, person_names, journal_key_dict, journal_name_dict, conference_key_dict,
                               publications, person_authored, person_edited):
+    """
+    Loads the dblp data from memory and inserts it as batches into the database
+    :param conn: Connection to database
+    :param person_keys: dblpKeys of Persons
+    :param person_names: Names of Persons
+    :param journal_key_dict: dblpKeys of journals
+    :param journal_name_dict: Names of journals
+    :param conference_key_dict: dblpKeys of conferences
+    :param publications: Publications
+    :param person_authored: Authors of publications
+    :param person_edited: Editors of publications
+    """
     print("\nInserting dblp data into the database...")
     print("Person keys:")
     cur = conn.cursor()
-    # with progressbar.ProgressBar(max_value=len(person_keys)) as bar:
-    #     for i in range(0, len(person_keys), BATCH_SIZE):
-    #         query = """INSERT INTO `person` (`dblpKey`) VALUES (%s)"""
-    #         cur.executemany(query, person_keys[i:i + BATCH_SIZE])
-    #         conn.commit()
-    #         bar.update(i)
+    with progressbar.ProgressBar(max_value=len(person_keys)) as bar:
+        for i in range(0, len(person_keys), BATCH_SIZE):
+            query = """INSERT INTO `person` (`dblpKey`) VALUES (%s)"""
+            cur.executemany(query, person_keys[i:i + BATCH_SIZE])
+            conn.commit()
+            bar.update(i)
 
     print("Person names:")
-    # person_names_list = list(person_names.items())
-    # with progressbar.ProgressBar(max_value=len(person_names_list)) as bar:
-    #     for i in range(0, len(person_names_list), BATCH_SIZE):
-    #         query = """INSERT INTO `person_names` (`name`, `personKey`) VALUES (%s, %s)"""
-    #         params = [tuple(el) for el in person_names_list[i: i + BATCH_SIZE]]
-    #         cur.executemany(query, params)
-    #         conn.commit()
-    #         bar.update(i)
+    person_names_list = list(person_names.items())
+    with progressbar.ProgressBar(max_value=len(person_names_list)) as bar:
+        for i in range(0, len(person_names_list), BATCH_SIZE):
+            query = """INSERT INTO `person_names` (`name`, `personKey`) VALUES (%s, %s)"""
+            params = [tuple(el) for el in person_names_list[i: i + BATCH_SIZE]]
+            cur.executemany(query, params)
+            conn.commit()
+            bar.update(i)
 
     print("Journals:")
     journal_key_dict_list = list(journal_key_dict.items())
@@ -246,8 +267,8 @@ def add_dblp_data_to_database(conn, person_keys, person_names, journal_key_dict,
     with progressbar.ProgressBar(max_value=len(publications)) as bar:
         for i in range(0, len(publications), BATCH_SIZE):
             query = """INSERT IGNORE INTO `publication` 
-                    (`dblpKey`, `title`, `ee`, `url`, `year`, `volume`, `conference_dblpKey`, `journal_dblpKey`) 
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+                    (`dblpKey`, `title`, `ee`, `url`, `year`, `volume`, `type`, `conference_dblpKey`, `journal_dblpKey`) 
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
             cur.executemany(query, publications[i:i + BATCH_SIZE])
             conn.commit()
             bar.update(i)
@@ -264,7 +285,7 @@ def add_dblp_data_to_database(conn, person_keys, person_names, journal_key_dict,
     print("Editors of publications:")
     with progressbar.ProgressBar(max_value=len(person_edited)) as bar:
         for i in range(0, len(person_edited), BATCH_SIZE):
-            query = """INSERT IGNORE INTO `person_authored_publication` (`personKey`, `publicationKey`) 
+            query = """INSERT IGNORE INTO `person_edited_publication` (`personKey`, `publicationKey`) 
                             VALUES (%s, %s)"""
             cur.executemany(query, person_edited[i:i + BATCH_SIZE])
             conn.commit()
