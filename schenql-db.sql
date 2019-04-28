@@ -6,6 +6,7 @@
 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='TRADITIONAL,ALLOW_INVALID_DATES';
+SET @@global.innodb_large_prefix = 1;
 
 -- -----------------------------------------------------
 -- Schema schenql-db
@@ -18,17 +19,19 @@ DROP SCHEMA IF EXISTS `schenql-db` ;
 CREATE SCHEMA IF NOT EXISTS `schenql-db` DEFAULT CHARACTER SET utf8mb4;
 USE `schenql-db` ;
 
+
 -- -----------------------------------------------------
 -- Table `schenql-db`.`person`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `schenql-db`.`person` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`person` (
-  `dblpKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   `orcid` VARCHAR(20) NULL,
   `h-index` INT NULL,
   PRIMARY KEY (`dblpKey`))
 ENGINE = InnoDB;
+
 
 -- -----------------------------------------------------
 -- Table `schenql-db`.`person_names`
@@ -36,8 +39,8 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`person_names` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`person_names` (
-  `name` VARCHAR(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `personKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `name` VARCHAR(200) COLLATE utf8mb4_bin NOT NULL,
+  `personKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   PRIMARY KEY (`name`),
   INDEX `fk_personKey_idx` (`personKey` ASC),
   CONSTRAINT `fk_personKey`
@@ -49,60 +52,12 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `schenql-db`.`continent`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `schenql-db`.`continent` ;
-
-CREATE TABLE IF NOT EXISTS `schenql-db`.`continent` (
-  `id` INT NOT NULL,
-  `name` VARCHAR(45) NULL,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `schenql-db`.`country`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `schenql-db`.`country` ;
-
-CREATE TABLE IF NOT EXISTS `schenql-db`.`country` (
-  `id` INT NOT NULL,
-  `name` VARCHAR(45) NULL,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `schenql-db`.`city`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `schenql-db`.`city` ;
-
-CREATE TABLE IF NOT EXISTS `schenql-db`.`city` (
-  `id` INT NOT NULL,
-  `name` VARCHAR(45) NULL,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `schenql-db`.`state`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `schenql-db`.`state` ;
-
-CREATE TABLE IF NOT EXISTS `schenql-db`.`state` (
-  `id` INT NOT NULL,
-  `name` VARCHAR(45) NULL,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
 -- Table `schenql-db`.`conference`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `schenql-db`.`conference` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`conference` (
-  `dblpKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   `acronym` VARCHAR(50) NULL,
   `corerank` VARCHAR(3) NULL,
   `continent_id` INT NULL,
@@ -143,7 +98,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`journal` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`journal` (
-  `dblpKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   `acronym` VARCHAR(50) NULL,
   PRIMARY KEY (`dblpKey`))
 ENGINE = InnoDB;
@@ -157,7 +112,7 @@ DROP TABLE IF EXISTS `schenql-db`.`journal_name` ;
 CREATE TABLE IF NOT EXISTS `schenql-db`.`journal_name` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(200) NOT NULL,
-  `journalKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `journalKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   PRIMARY KEY (`id`),
   INDEX `fk_journalKey_idx` (`journalKey`ASC),
   CONSTRAINT `fk_journalKey`
@@ -174,7 +129,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`publication` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`publication` (
-  `dblpKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   `title` VARCHAR(1000) NULL,
   `abstract` TEXT NULL,
   `ee` VARCHAR(500) NULL,
@@ -182,8 +137,8 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`publication` (
   `year` INT NULL,
   `volume` VARCHAR(50) NULL,
   `type` ENUM('article', 'masterthesis', 'inproceedings', 'phdthesis') NULL,
-  `conference_dblpKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL,
-  `journal_dblpKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL,
+  `conference_dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NULL,
+  `journal_dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NULL,
   PRIMARY KEY (`dblpKey`),
   INDEX `fk_publication_conference_idx` (`conference_dblpKey` ASC),
   INDEX `fk_publication_journal_idx` (`journal_dblpKey` ASC),
@@ -206,7 +161,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`keyword` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`keyword` (
-  `keyword` VARCHAR(255) NOT NULL,
+  `keyword` VARCHAR(250) NOT NULL,
   PRIMARY KEY (`keyword`))
 ENGINE = InnoDB;
 
@@ -217,8 +172,8 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`publication_has_keyword` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`publication_has_keyword` (
-  `dblpKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `keyword` VARCHAR(255) NOT NULL,
+  `dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
+  `keyword` VARCHAR(250) NOT NULL,
   PRIMARY KEY (`dblpKey`, `keyword`),
   INDEX `fk_publication_has_keyword_keyword_idx` (`keyword` ASC),
   INDEX `fk_publication_has_keyword_publication_idx` (`dblpKey` ASC),
@@ -241,8 +196,8 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`person_authored_publication` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`person_authored_publication` (
-  `personKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `publicationKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `personKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
+  `publicationKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   PRIMARY KEY (`personKey`, `publicationKey`),
   INDEX `fk_person_authored_publication_publication_idx` (`publicationKey` ASC),
   INDEX `fk_person_authored_publication_person_idx` (`personKey` ASC),
@@ -289,8 +244,8 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`person_reviewed_publication` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`person_reviewed_publication` (
-  `personKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `publicationKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `personKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
+  `publicationKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   PRIMARY KEY (`personKey`, `publicationKey`),
   INDEX `fk_person_reviewed_publication_publication_idx` (`publicationKey` ASC),
   INDEX `fk_person_reviewed_publication_person_idx` (`personKey` ASC),
@@ -308,78 +263,38 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `schenql-db`.`instituion`
+-- Table `schenql-db`.`institution`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `schenql-db`.`instituion` ;
+DROP TABLE IF EXISTS `schenql-db`.`institution` ;
 
-CREATE TABLE IF NOT EXISTS `schenql-db`.`instituion` (
-  `key` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `type` ENUM('eins', 'zwei') NULL,
-  `continent_id` INT NULL,
-  `country_id` INT NULL,
-  `state_id` INT NULL,
-  `city_id` INT NULL,
-  PRIMARY KEY (`key`),
-  INDEX `fk_instituion_state_idx` (`state_id` ASC),
-  INDEX `fk_instituion_city_idx` (`city_id` ASC),
-  INDEX `fk_instituion_country_idx` (`country_id` ASC),
-  INDEX `fk_instituion_continent_idx` (`continent_id` ASC),
-  CONSTRAINT `fk_instituion_state`
-    FOREIGN KEY (`state_id`)
-    REFERENCES `schenql-db`.`state` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_instituion_city`
-    FOREIGN KEY (`city_id`)
-    REFERENCES `schenql-db`.`city` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_instituion_country`
-    FOREIGN KEY (`country_id`)
-    REFERENCES `schenql-db`.`country` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_instituion_continent`
-    FOREIGN KEY (`continent_id`)
-    REFERENCES `schenql-db`.`continent` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
-
--- -----------------------------------------------------
--- Table `schenql-db`.`instituion_name`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `schenql-db`.`instituion_name` ;
-
-CREATE TABLE IF NOT EXISTS `schenql-db`.`instituion_name` (
-    `id` INT AUTO_INCREMENT NOT NULL,
-    `name` VARCHAR(300) NOT NULL,
-    PRIMARY KEY (`id`)
+CREATE TABLE IF NOT EXISTS `schenql-db`.`institution` (
+    `key` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
+    `location` VARCHAR(100) NULL,
+    `country` VARCHAR(100) NULL,
+    `city` VARCHAR(100) NULL,
+    `lat` FLOAT(10, 6) NULL ,
+    `lon` FLOAT(10, 6) NULL ,
+    PRIMARY KEY (`key`)
 )
 ENGINE = InnoDB;
 
-
 -- -----------------------------------------------------
--- Table `schenql-db`.`publication_cites`
+-- Table `schenql-db`.`institution_name`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `schenql-db`.`publication_citedby` ;
+DROP TABLE IF EXISTS `schenql-db`.`institution_name` ;
 
-CREATE TABLE IF NOT EXISTS `schenql-db`.`publication_citedby` (
-  `pub_id` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `pub2_id` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  PRIMARY KEY (`pub_id`, `pub2_id`),
-  INDEX `fk_publication_cites_pub2_idx` (`pub2_id` ASC),
-  INDEX `fk_publication_cites_pub_idx` (`pub_id` ASC),
-  CONSTRAINT `fk_publication_cites_pub1`
-    FOREIGN KEY (`pub_id`)
-    REFERENCES `schenql-db`.`publication` (`dblpKey`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_publication_cites_pub2`
-    FOREIGN KEY (`pub2_id`)
-    REFERENCES `schenql-db`.`publication` (`dblpKey`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+CREATE TABLE IF NOT EXISTS `schenql-db`.`institution_name` (
+    `id` INT AUTO_INCREMENT NOT NULL,
+    `name` VARCHAR(300) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+    `institution_key` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
+    PRIMARY KEY (`id`),
+    INDEX `fk_institution_key_idx` (`institution_key` ASC),
+    CONSTRAINT `fk_institution_key`
+        FOREIGN KEY (`institution_key`)
+        REFERENCES `schenql-db`.`institution` (`key`)
+        ON DELETE NO ACTION
+        ON UPDATE NO ACTION
+)
 ENGINE = InnoDB;
 
 
@@ -389,8 +304,8 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`publication_references` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`publication_references` (
-  `pub_id` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `pub2_id` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `pub_id` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
+  `pub2_id` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   PRIMARY KEY (`pub_id`, `pub2_id`),
   INDEX `fk_publication_references_pub2_idx` (`pub2_id` ASC),
   INDEX `fk_publication_references_pub_idx` (`pub_id` ASC),
@@ -408,24 +323,24 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `schenql-db`.`person_works_for_instituion`
+-- Table `schenql-db`.`person_works_for_institution`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `schenql-db`.`person_works_for_instituion` ;
+DROP TABLE IF EXISTS `schenql-db`.`person_works_for_institution` ;
 
-CREATE TABLE IF NOT EXISTS `schenql-db`.`person_works_for_instituion` (
-  `person_dblpKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  `instituion_key` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  PRIMARY KEY (`person_dblpKey`, `instituion_key`),
-  INDEX `fk_person_works_for_instituion_instituion_idx` (`instituion_key` ASC),
-  INDEX `fk_person_works_for_instituion_person_idx` (`person_dblpKey` ASC),
-  CONSTRAINT `fk_person_works_for_instituion_person`
+CREATE TABLE IF NOT EXISTS `schenql-db`.`person_works_for_institution` (
+  `person_dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
+  `institution_key` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`person_dblpKey`, `institution_key`),
+  INDEX `fk_person_works_for_institution_institution_idx` (`institution_key` ASC),
+  INDEX `fk_person_works_for_institution_person_idx` (`person_dblpKey` ASC),
+  CONSTRAINT `fk_person_works_for_institution_person`
     FOREIGN KEY (`person_dblpKey`)
     REFERENCES `schenql-db`.`person` (`dblpKey`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_person_works_for_instituion_instituion`
-    FOREIGN KEY (`instituion_key`)
-    REFERENCES `schenql-db`.`instituion` (`key`)
+  CONSTRAINT `fk_person_works_for_institution_institution`
+    FOREIGN KEY (`institution_key`)
+    REFERENCES `schenql-db`.`institution` (`key`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;

@@ -51,7 +51,7 @@ def cleanup_db():
     print("""Cleanup DONE!""")
 
 
-def build_db_from_dblp(dblp_path):
+def build_db_from_dblp(dblp_path, inst_names):
     """
     Builds mysql-database from dblp.xml
     :param conn: database connection
@@ -70,7 +70,7 @@ def build_db_from_dblp(dblp_path):
     person_names = {}
 
     context = etree.iterparse(gzip.GzipFile(os.path.join(dblp_path, "dblp.xml.gz")),
-                              tag=("article", "masterthesis", "phdthesis", "inproceedings", "www"),
+                              tag=("article", "masterthesis", "phdthesis", "inproceedings", "book", "www"),
                               load_dtd=True,
                               encoding='iso-8859-1')
     bar = progressbar.ProgressBar(max_value=progressbar.UnknownLength)
@@ -94,7 +94,7 @@ def build_db_from_dblp(dblp_path):
             journal_key = None
 
             if title:
-                title=title.encode('utf-8').decode('latin-1')
+                title = title.encode('utf-8').decode('latin-1')
 
             if elem.find("journal") is not None:
                 journal = elem.find("journal").text
@@ -107,7 +107,7 @@ def build_db_from_dblp(dblp_path):
                     try:
                         journal_key = dblp_key.rsplit("/", 1)[0]
                     except IndexError:
-                        print("Error finding journal key for journal", journal)
+                        print("\nError finding journal key for journal", journal)
 
                 if journal_key:
                     try:
@@ -133,7 +133,7 @@ def build_db_from_dblp(dblp_path):
                     try:
                         conference_key = dblp_key.rsplit("/", 1)[0]
                     except IndexError:
-                        print("Error finding conference key for journal", dblp_key)
+                        print("\nError finding conference key for journal", dblp_key)
 
                 if conference_key:
                     try:
@@ -176,7 +176,8 @@ def build_db_from_dblp(dblp_path):
                 notes = elem.findall("note")
                 for note in notes:
                     if note.get("affiliation"):
-                        affiliations.append((dblp_key, note.text))
+                        if note.text in inst_names:
+                            affiliations.append((dblp_key, inst_names[note.text]))
 
         # Freeing the element since it is not needed anymore
         elem.clear()
@@ -189,7 +190,7 @@ def build_db_from_dblp(dblp_path):
     ##################################################
 
     print("\nInserting dblp data into the database...")
-    print("Person keys:")
+    print("\nPerson keys:")
     cur = db_connection.cursor()
     with progressbar.ProgressBar(max_value=len(person_keys)) as bar:
         for i in range(0, len(person_keys), BATCH_SIZE):
@@ -198,7 +199,7 @@ def build_db_from_dblp(dblp_path):
             db_connection.commit()
             bar.update(i)
 
-    print("Adding person names:")
+    print("\nAdding person names:")
     person_names_list = list(person_names.items())
     with progressbar.ProgressBar(max_value=len(person_names_list)) as bar:
         for i in range(0, len(person_names_list), BATCH_SIZE):
@@ -208,7 +209,16 @@ def build_db_from_dblp(dblp_path):
             db_connection.commit()
             bar.update(i)
 
-    print("Adding journals:")
+    print("\nAdding affiliations of persons:")
+    with progressbar.ProgressBar(max_value=len(affiliations)) as bar:
+        for i in range(0, len(affiliations), BATCH_SIZE):
+            query = """INSERT INTO `person_works_for_institution` (`person_dblpKey`, `institution_key`)
+                               VALUES (%s, %s)"""
+            cur.executemany(query, affiliations[i:i + BATCH_SIZE])
+            db_connection.commit()
+            bar.update(i)
+
+    print("\nAdding journals:")
     journal_key_dict_list = list(journal_key_dict.items())
     with progressbar.ProgressBar(max_value=len(journal_key_dict_list)) as bar:
         for i in range(0, len(journal_key_dict_list), BATCH_SIZE):
@@ -218,7 +228,7 @@ def build_db_from_dblp(dblp_path):
             db_connection.commit()
             bar.update(i)
 
-    print("Adding journal names:")
+    print("\nAdding journal names:")
     journal_name_dict_list = list(journal_name_dict.items())
     with progressbar.ProgressBar(max_value=len(journal_name_dict_list)) as bar:
         for i in range(0, len(journal_name_dict_list), BATCH_SIZE):
@@ -228,7 +238,7 @@ def build_db_from_dblp(dblp_path):
             db_connection.commit()
             bar.update(i)
 
-    print("Adding conferences:")
+    print("\nAdding conferences:")
     conference_key_dict_list = list(conference_key_dict.items())
     with progressbar.ProgressBar(max_value=len(conference_key_dict_list)) as bar:
         for i in range(0, len(conference_key_dict_list), BATCH_SIZE):
@@ -241,7 +251,7 @@ def build_db_from_dblp(dblp_path):
                 pass
             bar.update(i)
 
-    print("Adding publications:")
+    print("\nAdding publications:")
     with progressbar.ProgressBar(max_value=len(publications)) as bar:
         for i in range(0, len(publications), BATCH_SIZE):
             query = """INSERT INTO `publication` 
@@ -251,7 +261,7 @@ def build_db_from_dblp(dblp_path):
             db_connection.commit()
             bar.update(i)
 
-    print("Adding authors of publications:")
+    print("\nAdding authors of publications:")
     with progressbar.ProgressBar(max_value=len(person_authored)) as bar:
         for i in range(0, len(person_authored), BATCH_SIZE):
             query = """INSERT INTO `person_authored_publication` (`personKey`, `publicationKey`) 
@@ -260,7 +270,7 @@ def build_db_from_dblp(dblp_path):
             db_connection.commit()
             bar.update(i)
 
-    print("Adding editors of publications:")
+    print("\nAdding editors of publications:")
     with progressbar.ProgressBar(max_value=len(person_edited)) as bar:
         for i in range(0, len(person_edited), BATCH_SIZE):
             query = """INSERT INTO `person_edited_publication` (`personKey`, `publicationKey`) 
@@ -272,29 +282,78 @@ def build_db_from_dblp(dblp_path):
 
 
 def add_inst_data(data_path):
-    tree = etree.parse(os.path.join(data_path, "inst.xml"))
+    parser = etree.XMLParser(ns_clean=True, load_dtd=True, collect_ids=False)
+    tree = etree.parse(os.path.join(data_path, "inst.xml"), parser)
+    inst_names = {}
+    institutions = []
+    xml_root = tree.getroot()
+
+    for elem in xml_root.getchildren():
+        inst_key = elem.get("key")
+        country = None
+        city = None
+        lat = None
+        lon = None
+        location_text = None
+        if inst_key:
+            location = elem.find("location")
+            if location is not None:
+                country = location.get("country")
+                city = location.get("city")
+                lat = location.get("lat")
+                lon = location.get("lon")
+                location_text = location.text
+
+            names = elem.findall("name")
+            for name in names:
+                inst_names[name.text] = inst_key
+
+            institutions.append((inst_key, location_text, country, city, lat, lon))
+        elem.clear()
+
+    ##################################################
+    #        INSERTING DATA INTO DATABASE            #
+    ##################################################
+
+    print("\nInserting inst data into database...")
+    cur = db_connection.cursor()
+
+    print("\nAdding institution keys...")
+    query = """INSERT INTO `institution` (`key`, `location`, `country`, `city`, `lat` ,`lon`)
+            VALUES (%s, %s, %s, %s, %s, %s)"""
+    cur.executemany(query, institutions)
+    db_connection.commit()
+
+    print("\nAdding institution names...")
+    inst_names_list = list(inst_names.items())
+    query = """INSERT INTO `institution_name` (`name`, `institution_key`) VALUES (%s, %s)"""
+    cur.executemany(query, inst_names_list)
+    db_connection.commit()
+
+    cur.close()
+
+    return inst_names
 
 
 def add_s2_data(data_path):
-    print("Processing semantic scholar data. This may take even longer...")
+    print("\nProcessing semantic scholar data. This may take even longer...")
     pub_references_pub2 = []
-    pub2_cited_by_pub = []
     keywords = set()
     pub_keywords = []
     abstracts = []
-    folder_regex = re.compile("/(journals|conf|phd)/")
+    folder_regex = re.compile("/(journals|conf|phd|books)/")
 
     bar = progressbar.ProgressBar(max_value=progressbar.UnknownLength)
     counter = 0
 
-    for root, dirs, files in os.walk(data_path):
+    for root, dirs, files in os.walk(os.path.join(data_path, "s2-aux")):
         for name in files:
             if folder_regex.search(root):
                 file_path = os.path.join(root, name)
                 try:
                     tree = etree.parse(file_path)
                 except etree.XMLSyntaxError:
-                    print("XML Syntax Error in:", file_path)
+                    print("\nXML Syntax Error in:", file_path)
                     continue
                 xml_root = tree.getroot()
                 pub_key = xml_root.get("key")
@@ -303,68 +362,58 @@ def add_s2_data(data_path):
                 if pub_key:
                     for elem in xml_root.getchildren():
                         if elem.tag == "abstract":
-                            abstracts = (elem.text, pub_key)
+                            abstracts.append((elem.text.strip(), pub_key))
 
                         if elem.tag == "cite":
                             cited_pub = elem.get("key")
                             if cited_pub:
                                 pub_references_pub2.append((pub_key, cited_pub))
-                                pub2_cited_by_pub.append((cited_pub, pub_key))
 
                         if elem.tag == "keyword":
                             keyword = elem.text
                             keywords.add((keyword,))
                             if keyword:
                                 pub_keywords.append((pub_key, keyword))
+                        elem.clear()
     bar.finish()
 
     ##################################################
     #        INSERTING DATA INTO DATABASE            #
     ##################################################
 
-    print("Inserting semantic scholar data into database...")
+    print("\nInserting semantic scholar data into database...")
     cur = db_connection.cursor()
 
-    print("Adding references:")
+    print("\nAdding references:")
     with progressbar.ProgressBar(max_value=len(pub_references_pub2)) as bar:
         for i in range(0, len(pub_references_pub2), BATCH_SIZE):
-            query = """INSERT INTO `publication_references` (`pub_id`, `pub2_id`) VALUES (%s, %s)"""
+            query = """INSERT IGNORE INTO `publication_references` (`pub_id`, `pub2_id`) VALUES (%s, %s)"""
             cur.executemany(query, pub_references_pub2[i:i + BATCH_SIZE])
             db_connection.commit()
             bar.update(i)
-    cur.close()
 
-    print("Adding citations:")
-    with progressbar.ProgressBar(max_value=len(pub2_cited_by_pub)) as bar:
-        for i in range(0, len(pub2_cited_by_pub), BATCH_SIZE):
-            query = """INSERT INTO `publication_citedby` (`pub_id`, `pub2_id`) VALUES (%s, %s)"""
-            cur.executemany(query, pub2_cited_by_pub[i:i + BATCH_SIZE])
-            db_connection.commit()
-            bar.update(i)
-    cur.close()
-
-    print("Adding abstracts:")
+    print("\nAdding abstracts:")
     with progressbar.ProgressBar(max_value=len(abstracts)) as bar:
         for i in range(0, len(abstracts), BATCH_SIZE):
             query = """UPDATE `publication` SET `abstract` = %s WHERE `dblpKey` = %s"""
-            params = [tuple(el) for el in abstracts[i: i + BATCH_SIZE]]
-            cur.executemany(query, params)
+            cur.executemany(query, abstracts[i: i + BATCH_SIZE])
             db_connection.commit()
             bar.update(i)
 
-    print("Adding keywords:")
+    print("\nAdding keywords:")
     keyword_list = list(keywords)
     with progressbar.ProgressBar(max_value=len(keyword_list)) as bar:
         for i in range(0, len(keyword_list), BATCH_SIZE):
             query = """INSERT INTO `keyword` (`keyword`) VALUES (%s)"""
+            print(keyword_list)
             cur.executemany(query, keyword_list[i:i + BATCH_SIZE])
             db_connection.commit()
             bar.update(i)
 
-    print("Adding keywords to publications:")
+    print("\nAdding keywords to publications:")
     with progressbar.ProgressBar(max_value=len(pub_keywords)) as bar:
         for i in range(0, len(pub_keywords), BATCH_SIZE):
-            query = """INSERT INTO `publication_has_keyword` (`dblpKey`, `keyword`) VALUES (%s, %s)"""
+            query = """INSERT IGNORE INTO `publication_has_keyword` (`dblpKey`, `keyword`) VALUES (%s, %s)"""
             cur.executemany(query, pub_keywords[i:i + BATCH_SIZE])
             db_connection.commit()
             bar.update(i)
@@ -378,7 +427,6 @@ def main():
     parser.add_argument("-d", "--download", action="store_true", help="Download the current version of the DBLP")
     parser.add_argument("-c", "--cleardatabase", action="store_true", help="TRUNCATES ALL TABLES!!!")
     parser.add_argument("--dblp", action="store_true", help="Build dblp data")
-    parser.add_argument("--inst", action="store_true", help="Build institution data")
     parser.add_argument("--cites", action="store_true", help="Build cites data")
     parser.add_argument("--all", action="store_true", help="Build all data")
     args = parser.parse_args()
@@ -416,10 +464,9 @@ def main():
     start = time.time()
     print("\n###############################\nStart %s\n###############################\n" % (time.ctime()))
 
-    if args.inst or args.all:
-        add_inst_data(data_path)
     if args.dblp or args.all:
-        build_db_from_dblp(data_path)
+        inst_names = add_inst_data(data_path)
+        build_db_from_dblp(data_path, inst_names)
     if args.cites or args.all:
         add_s2_data(data_path)
 
