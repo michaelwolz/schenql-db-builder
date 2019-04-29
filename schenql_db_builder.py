@@ -395,9 +395,12 @@ def add_s2_data(data_path):
     print("\nAdding abstracts:")
     with progressbar.ProgressBar(max_value=len(abstracts)) as bar:
         for i in range(0, len(abstracts), BATCH_SIZE):
-            query = """UPDATE `publication` SET `abstract` = %s WHERE `dblpKey` = %s"""
-            cur.executemany(query, abstracts[i: i + BATCH_SIZE])
-            db_connection.commit()
+            query = """UPDATE IGNORE `publication` SET `abstract` = %s WHERE `dblpKey` = %s"""
+            try:
+                cur.executemany(query, abstracts[i: i + BATCH_SIZE])
+                db_connection.commit()
+            except mysql.connector.errors.DatabaseError:
+                print("Error in batch:", i)
             bar.update(i)
 
     print("\nAdding keywords:")
