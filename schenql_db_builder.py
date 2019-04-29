@@ -153,14 +153,13 @@ def build_db_from_dblp(dblp_path, inst_names):
             publications.append((dblp_key, title, ee, url, year, volume, type, conference_key, journal_key))
 
             # Adding authors to the publication
+            # TODO: Need to parse the dblp twice :( - person was not parsed until here -.-
             for person in authors:
-                if person.text in person_names:
-                    person_authored.append((person_names[person.text], dblp_key))
+                person_authored.append((person.text, dblp_key))
 
             # Adding editors to the publication
             for person in editors:
-                if person.text in person_names:
-                    person_edited.append((person_names[person.text], dblp_key))
+                person_edited.append((person.text, dblp_key))
 
         # Processing person records
         if elem.tag == "www":
@@ -184,6 +183,14 @@ def build_db_from_dblp(dblp_path, inst_names):
 
     # Finishing the progressbar
     bar.finish()
+
+    # Replace author names with dblpKeys in person_authored
+    for key, value in person_authored:
+        person_authored[key] = (person_names[value[0]], value[1])
+
+    # Replace author names with dblpKeys in person_edited
+    for key, value in person_edited:
+        person_edited[key] = (person_names[value[0]], value[1])
 
     ##################################################
     #        INSERTING DATA INTO DATABASE            #
@@ -408,7 +415,6 @@ def add_s2_data(data_path):
     with progressbar.ProgressBar(max_value=len(keyword_list)) as bar:
         for i in range(0, len(keyword_list), BATCH_SIZE):
             query = """INSERT INTO `keyword` (`keyword`) VALUES (%s)"""
-            print(keyword_list)
             cur.executemany(query, keyword_list[i:i + BATCH_SIZE])
             db_connection.commit()
             bar.update(i)
