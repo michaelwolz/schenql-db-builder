@@ -185,12 +185,12 @@ def build_db_from_dblp(dblp_path, inst_names):
     bar.finish()
 
     # Replace author names with dblpKeys in person_authored
-    for key, value in person_authored:
-        person_authored[key] = (person_names[value[0]], value[1])
+    for i in range(0, len(person_authored)):
+        person_authored[i] = (person_names[person_authored[i][0]], person_authored[i][1])
 
     # Replace author names with dblpKeys in person_edited
-    for key, value in person_edited:
-        person_edited[key] = (person_names[value[0]], value[1])
+    for i in range(0, len(person_edited)):
+        person_edited[i] = (person_names[person_edited[i][0]], person_edited[i][1])
 
     ##################################################
     #        INSERTING DATA INTO DATABASE            #
