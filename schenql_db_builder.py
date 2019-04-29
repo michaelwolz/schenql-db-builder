@@ -153,7 +153,6 @@ def build_db_from_dblp(dblp_path, inst_names):
             publications.append((dblp_key, title, ee, url, year, volume, type, conference_key, journal_key))
 
             # Adding authors to the publication
-            # TODO: Need to parse the dblp twice :( - person was not parsed until here -.-
             for person in authors:
                 person_authored.append((person.text, dblp_key))
 
@@ -199,6 +198,9 @@ def build_db_from_dblp(dblp_path, inst_names):
     print("\nInserting dblp data into the database...")
     print("\nPerson keys:")
     cur = db_connection.cursor()
+
+    cur.execute("SET FOREIGN_KEY_CHECKS=0;")
+
     with progressbar.ProgressBar(max_value=len(person_keys)) as bar:
         for i in range(0, len(person_keys), BATCH_SIZE):
             query = """INSERT INTO `person` (`dblpKey`) VALUES (%s)"""
@@ -271,7 +273,7 @@ def build_db_from_dblp(dblp_path, inst_names):
     print("\nAdding authors of publications:")
     with progressbar.ProgressBar(max_value=len(person_authored)) as bar:
         for i in range(0, len(person_authored), BATCH_SIZE):
-            query = """INSERT INTO `person_authored_publication` (`personKey`, `publicationKey`) 
+            query = """INSERT IGNORE INTO `person_authored_publication` (`personKey`, `publicationKey`) 
                     VALUES (%s, %s)"""
             cur.executemany(query, person_authored[i:i + BATCH_SIZE])
             db_connection.commit()
@@ -285,6 +287,8 @@ def build_db_from_dblp(dblp_path, inst_names):
             cur.executemany(query, person_edited[i:i + BATCH_SIZE])
             db_connection.commit()
             bar.update(i)
+
+    cur.execute("SET FOREIGN_KEY_CHECKS=1;")
     cur.close()
 
 
@@ -390,6 +394,7 @@ def add_s2_data(data_path):
 
     print("\nInserting semantic scholar data into database...")
     cur = db_connection.cursor()
+    cur.execute("SET FOREIGN_KEY_CHECKS=0;")
 
     print("\nAdding references:")
     with progressbar.ProgressBar(max_value=len(pub_references_pub2)) as bar:
@@ -427,6 +432,7 @@ def add_s2_data(data_path):
             db_connection.commit()
             bar.update(i)
 
+    cur.execute("SET FOREIGN_KEY_CHECKS=1;")
     cur.close()
 
 
