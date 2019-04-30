@@ -270,7 +270,7 @@ def build_db_from_dblp(data_path, inst_names):
         with open(os.path.join(data_path, "person_authored_publication.csv"), "w") as file:
             csv.writer(file).writerows(person_authored)
         print("\nLoading data from file to database. This may take some time")
-        query = """LOAD DATA INFILE %s INTO TABLE `person_authored_publication`"""
+        query = """LOAD DATA LOCAL INFILE %s INTO TABLE `person_authored_publication`"""
         cur.execute(query, (os.path.join(data_path, "person_authored_publication.csv"),))
     bar.finish()
 
