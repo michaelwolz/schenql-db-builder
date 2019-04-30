@@ -41,12 +41,12 @@ def cleanup_db():
     table_cur = db_connection.cursor(buffered=True)
     cur2 = db_connection.cursor()
     print("Cleaning up database...")
-    table_cur.execute("""SET GLOBAL FOREIGN_KEY_CHECKS = 0""")
+    table_cur.execute("""SET FOREIGN_KEY_CHECKS = 0""")
     table_cur.execute("""SHOW TABLES""")
     for table in table_cur:
         print("""TRUNCATE TABLE """ + table[0])
         cur2.execute("""TRUNCATE TABLE """ + table[0])
-    table_cur.execute("""SET GLOBAL FOREIGN_KEY_CHECKS = 1""")
+    table_cur.execute("""SET FOREIGN_KEY_CHECKS = 1""")
     table_cur.close()
     cur2.close()
     print("""Cleanup DONE!""")
@@ -200,7 +200,7 @@ def build_db_from_dblp(data_path, inst_names):
     print("\nPerson keys:")
     cur = db_connection.cursor()
 
-    cur.execute("SET GLOBAL FOREIGN_KEY_CHECKS=0;")
+    cur.execute("SET FOREIGN_KEY_CHECKS=0;")
 
     with progressbar.ProgressBar(max_value=len(person_keys)) as bar:
         for i in range(0, len(person_keys), BATCH_SIZE):
@@ -294,7 +294,7 @@ def build_db_from_dblp(data_path, inst_names):
     with progressbar.ProgressBar(max_value=progressbar.UnknownLength) as bar:
         db_connection.commit()
     bar.finish()
-    cur.execute("SET GLOBAL FOREIGN_KEY_CHECKS=1;")
+    cur.execute("SET FOREIGN_KEY_CHECKS=1;")
     cur.close()
 
 
@@ -401,7 +401,7 @@ def add_s2_data(data_path):
 
     print("\nInserting semantic scholar data into database...")
     cur = db_connection.cursor()
-    cur.execute("SET GLOBAL FOREIGN_KEY_CHECKS=0;")
+    cur.execute("SET FOREIGN_KEY_CHECKS=0;")
 
     print("\nAdding references:")
     with progressbar.ProgressBar(max_value=len(pub_references_pub2)) as bar:
@@ -440,7 +440,7 @@ def add_s2_data(data_path):
         db_connection.commit()
     bar.finish()
 
-    cur.execute("SET GLOBAL FOREIGN_KEY_CHECKS=1;")
+    cur.execute("SET FOREIGN_KEY_CHECKS=1;")
     cur.close()
 
 
