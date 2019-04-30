@@ -9,6 +9,7 @@ import os
 import re
 import time
 import urllib.request
+import csv
 
 import mysql.connector
 import progressbar
@@ -40,22 +41,22 @@ def cleanup_db():
     table_cur = db_connection.cursor(buffered=True)
     cur2 = db_connection.cursor()
     print("Cleaning up database...")
-    table_cur.execute("""SET FOREIGN_KEY_CHECKS = 0""")
+    table_cur.execute("""SET GLOBAL FOREIGN_KEY_CHECKS = 0""")
     table_cur.execute("""SHOW TABLES""")
     for table in table_cur:
         print("""TRUNCATE TABLE """ + table[0])
         cur2.execute("""TRUNCATE TABLE """ + table[0])
-    table_cur.execute("""SET FOREIGN_KEY_CHECKS = 1""")
+    table_cur.execute("""SET GLOBAL FOREIGN_KEY_CHECKS = 1""")
     table_cur.close()
     cur2.close()
     print("""Cleanup DONE!""")
 
 
-def build_db_from_dblp(dblp_path, inst_names):
+def build_db_from_dblp(data_path, inst_names):
     """
     Builds mysql-database from dblp.xml
     :param conn: database connection
-    :param dblp_path: path to dblp.xml.gz
+    :param data_path: path to dblp.xml.gz
     """
     print("Processing dblp file...")
 
@@ -69,7 +70,7 @@ def build_db_from_dblp(dblp_path, inst_names):
     person_keys = []
     person_names = {}
 
-    context = etree.iterparse(gzip.GzipFile(os.path.join(dblp_path, "dblp.xml.gz")),
+    context = etree.iterparse(gzip.GzipFile(os.path.join(data_path, "dblp.xml.gz")),
                               tag=("article", "masterthesis", "phdthesis", "inproceedings", "book", "www"),
                               load_dtd=True,
                               encoding='iso-8859-1')
@@ -199,13 +200,12 @@ def build_db_from_dblp(dblp_path, inst_names):
     print("\nPerson keys:")
     cur = db_connection.cursor()
 
-    cur.execute("SET FOREIGN_KEY_CHECKS=0;")
+    cur.execute("SET GLOBAL FOREIGN_KEY_CHECKS=0;")
 
     with progressbar.ProgressBar(max_value=len(person_keys)) as bar:
         for i in range(0, len(person_keys), BATCH_SIZE):
             query = """INSERT INTO `person` (`dblpKey`) VALUES (%s)"""
             cur.executemany(query, person_keys[i:i + BATCH_SIZE])
-            db_connection.commit()
             bar.update(i)
 
     print("\nAdding person names:")
@@ -215,7 +215,6 @@ def build_db_from_dblp(dblp_path, inst_names):
             query = """INSERT INTO `person_names` (`name`, `personKey`) VALUES (%s, %s)"""
             params = [tuple(el) for el in person_names_list[i: i + BATCH_SIZE]]
             cur.executemany(query, params)
-            db_connection.commit()
             bar.update(i)
 
     print("\nAdding affiliations of persons:")
@@ -224,7 +223,6 @@ def build_db_from_dblp(dblp_path, inst_names):
             query = """INSERT INTO `person_works_for_institution` (`person_dblpKey`, `institution_key`)
                                VALUES (%s, %s)"""
             cur.executemany(query, affiliations[i:i + BATCH_SIZE])
-            db_connection.commit()
             bar.update(i)
 
     print("\nAdding journals:")
@@ -234,7 +232,6 @@ def build_db_from_dblp(dblp_path, inst_names):
             query = """INSERT INTO `journal` (`dblpKey`, `acronym`) VALUES (%s, %s)"""
             params = [tuple(el) for el in journal_key_dict_list[i: i + BATCH_SIZE]]
             cur.executemany(query, params)
-            db_connection.commit()
             bar.update(i)
 
     print("\nAdding journal names:")
@@ -244,7 +241,6 @@ def build_db_from_dblp(dblp_path, inst_names):
             query = """INSERT INTO `journal_name` (`name`, `journalKey`) VALUES (%s, %s)"""
             params = [tuple(el) for el in journal_name_dict_list[i: i + BATCH_SIZE]]
             cur.executemany(query, params)
-            db_connection.commit()
             bar.update(i)
 
     print("\nAdding conferences:")
@@ -255,7 +251,6 @@ def build_db_from_dblp(dblp_path, inst_names):
                 query = """INSERT INTO `conference` (`dblpKey`, `acronym`) VALUES (%s, %s)"""
                 params = [tuple(el) for el in conference_key_dict_list[i: i + BATCH_SIZE]]
                 cur.executemany(query, params)
-                db_connection.commit()
             except mysql.connector.errors.IntegrityError:
                 pass
             bar.update(i)
@@ -267,17 +262,25 @@ def build_db_from_dblp(dblp_path, inst_names):
                     (`dblpKey`, `title`, `ee`, `url`, `year`, `volume`, `type`, `conference_dblpKey`, `journal_dblpKey`) 
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
             cur.executemany(query, publications[i:i + BATCH_SIZE])
-            db_connection.commit()
             bar.update(i)
 
     print("\nAdding authors of publications:")
-    with progressbar.ProgressBar(max_value=len(person_authored)) as bar:
-        for i in range(0, len(person_authored), BATCH_SIZE):
-            query = """INSERT IGNORE INTO `person_authored_publication` (`personKey`, `publicationKey`) 
-                    VALUES (%s, %s)"""
-            cur.executemany(query, person_authored[i:i + BATCH_SIZE])
-            db_connection.commit()
-            bar.update(i)
+    print("\nFirst adding csv to filesystem")
+    with progressbar.ProgressBar(max_value=progressbar.UnknownLength) as bar:
+        with open(os.path.join(data_path, "person_authored_publication.csv"), "w") as file:
+            csv.writer(file).writerows(person_authored)
+        print("\nLoading data from file to database. This may take some time")
+        query = """LOAD DATA INFILE %s INTO TABLE `person_authored_publication`"""
+        cur.execute(query, (os.path.join(data_path, "person_authored_publication.csv"),))
+    bar.finish()
+
+    # with progressbar.ProgressBar(max_value=len(person_authored)) as bar:
+    #     for i in range(0, len(person_authored), BATCH_SIZE):
+    #         query = """INSERT IGNORE INTO `person_authored_publication` (`personKey`, `publicationKey`)
+    #                 VALUES (%s, %s)"""
+    #         cur.executemany(query, person_authored[i:i + BATCH_SIZE])
+    #         db_connection.commit()
+    #         bar.update(i)
 
     print("\nAdding editors of publications:")
     with progressbar.ProgressBar(max_value=len(person_edited)) as bar:
@@ -285,10 +288,13 @@ def build_db_from_dblp(dblp_path, inst_names):
             query = """INSERT INTO `person_edited_publication` (`personKey`, `publicationKey`) 
                             VALUES (%s, %s)"""
             cur.executemany(query, person_edited[i:i + BATCH_SIZE])
-            db_connection.commit()
             bar.update(i)
 
-    cur.execute("SET FOREIGN_KEY_CHECKS=1;")
+    print("\nCommitting changes:")
+    with progressbar.ProgressBar(max_value=progressbar.UnknownLength) as bar:
+        db_connection.commit()
+    bar.finish()
+    cur.execute("SET GLOBAL FOREIGN_KEY_CHECKS=1;")
     cur.close()
 
 
@@ -333,12 +339,13 @@ def add_inst_data(data_path):
     query = """INSERT INTO `institution` (`key`, `location`, `country`, `city`, `lat` ,`lon`)
             VALUES (%s, %s, %s, %s, %s, %s)"""
     cur.executemany(query, institutions)
-    db_connection.commit()
 
     print("\nAdding institution names...")
     inst_names_list = list(inst_names.items())
     query = """INSERT INTO `institution_name` (`name`, `institution_key`) VALUES (%s, %s)"""
     cur.executemany(query, inst_names_list)
+
+    print("\nCommitting changes:")
     db_connection.commit()
 
     cur.close()
@@ -394,14 +401,13 @@ def add_s2_data(data_path):
 
     print("\nInserting semantic scholar data into database...")
     cur = db_connection.cursor()
-    cur.execute("SET FOREIGN_KEY_CHECKS=0;")
+    cur.execute("SET GLOBAL FOREIGN_KEY_CHECKS=0;")
 
     print("\nAdding references:")
     with progressbar.ProgressBar(max_value=len(pub_references_pub2)) as bar:
         for i in range(0, len(pub_references_pub2), BATCH_SIZE):
             query = """INSERT IGNORE INTO `publication_references` (`pub_id`, `pub2_id`) VALUES (%s, %s)"""
             cur.executemany(query, pub_references_pub2[i:i + BATCH_SIZE])
-            db_connection.commit()
             bar.update(i)
 
     print("\nAdding abstracts:")
@@ -410,7 +416,6 @@ def add_s2_data(data_path):
             query = """UPDATE IGNORE `publication` SET `abstract` = %s WHERE `dblpKey` = %s"""
             try:
                 cur.executemany(query, abstracts[i: i + BATCH_SIZE])
-                db_connection.commit()
             except mysql.connector.errors.DatabaseError:
                 print("Error in batch:", i)
             bar.update(i)
@@ -421,7 +426,6 @@ def add_s2_data(data_path):
         for i in range(0, len(keyword_list), BATCH_SIZE):
             query = """INSERT INTO `keyword` (`keyword`) VALUES (%s)"""
             cur.executemany(query, keyword_list[i:i + BATCH_SIZE])
-            db_connection.commit()
             bar.update(i)
 
     print("\nAdding keywords to publications:")
@@ -429,10 +433,14 @@ def add_s2_data(data_path):
         for i in range(0, len(pub_keywords), BATCH_SIZE):
             query = """INSERT IGNORE INTO `publication_has_keyword` (`dblpKey`, `keyword`) VALUES (%s, %s)"""
             cur.executemany(query, pub_keywords[i:i + BATCH_SIZE])
-            db_connection.commit()
             bar.update(i)
 
-    cur.execute("SET FOREIGN_KEY_CHECKS=1;")
+    print("\nCommitting changes:")
+    with progressbar.ProgressBar(max_value=progressbar.UnknownLength) as bar:
+        db_connection.commit()
+    bar.finish()
+
+    cur.execute("SET GLOBAL FOREIGN_KEY_CHECKS=1;")
     cur.close()
 
 
