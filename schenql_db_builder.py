@@ -16,7 +16,7 @@ import progressbar
 from lxml import etree
 
 # Defines how many SQL Insert statements will be executed at once
-BATCH_SIZE = 10000
+BATCH_SIZE = 256
 
 # Database connection
 db_connection = None
@@ -265,21 +265,20 @@ def build_db_from_dblp(data_path, inst_names):
             bar.update(i)
 
     print("\nAdding authors of publications:")
-    print("\nFirst adding csv to filesystem")
-    with open(os.path.join(data_path, "person_authored_publication.csv"), "w") as file:
-        csv.writer(file).writerows(person_authored)
-
-    print("\nLoading data from file to database. This may take some time")
-    query = """LOAD DATA LOCAL INFILE %s INTO TABLE `person_authored_publication`"""
-    cur.execute(query, (os.path.join(data_path, "person_authored_publication.csv"),))
-
-    # with progressbar.ProgressBar(max_value=len(person_authored)) as bar:
-    #     for i in range(0, len(person_authored), BATCH_SIZE):
-    #         query = """INSERT IGNORE INTO `person_authored_publication` (`personKey`, `publicationKey`)
-    #                 VALUES (%s, %s)"""
-    #         cur.executemany(query, person_authored[i:i + BATCH_SIZE])
-    #         db_connection.commit()
-    #         bar.update(i)
+    with progressbar.ProgressBar(max_value=len(person_authored)) as bar:
+        for i in range(0, len(person_authored), BATCH_SIZE):
+            query = """INSERT IGNORE INTO `person_authored_publication` (`personKey`, `publicationKey`)
+                    VALUES (%s, %s)"""
+            cur.executemany(query, person_authored[i:i + BATCH_SIZE])
+            db_connection.commit()
+            bar.update(i)
+    # print("\nFirst adding csv to filesystem")
+    # with open(os.path.join(data_path, "person_authored_publication.csv"), "w") as file:
+    #     csv.writer(file).writerows(person_authored)
+    #
+    # print("\nLoading data from file to database. This may take some time")
+    # query = """LOAD DATA LOCAL INFILE %s INTO TABLE `person_authored_publication`"""
+    # cur.execute(query, (os.path.join(data_path, "person_authored_publication.csv"),))
 
     print("\nAdding editors of publications:")
     with progressbar.ProgressBar(max_value=len(person_edited)) as bar:
