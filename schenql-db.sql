@@ -172,9 +172,10 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`publication_has_keyword` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`publication_has_keyword` (
+  `id` INT AUTO_INCREMENT NOT NULL,
   `dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   `keyword` VARCHAR(250) NOT NULL,
-  PRIMARY KEY (`dblpKey`, `keyword`),
+  PRIMARY KEY (`id`),
   INDEX `fk_publication_has_keyword_keyword_idx` (`keyword` ASC),
   INDEX `fk_publication_has_keyword_publication_idx` (`dblpKey` ASC),
   CONSTRAINT `fk_publication_has_keyword_publication`
@@ -196,11 +197,12 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`person_authored_publication` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`person_authored_publication` (
+  `id` INT AUTO_INCREMENT NOT NULL,
   `personKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   `publicationKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
-  PRIMARY KEY (`personKey`, `publicationKey`),
-  INDEX `fk_person_authored_publication_publication_idx` (`publicationKey` ASC),
+  PRIMARY KEY (`id`),
   INDEX `fk_person_authored_publication_person_idx` (`personKey` ASC),
+  INDEX `fk_person_authored_publication_publication_idx` (`publicationKey` ASC),
   CONSTRAINT `fk_person_authored_publication_person`
     FOREIGN KEY (`personKey`)
     REFERENCES `schenql-db`.`person` (`dblpKey`)
@@ -220,9 +222,10 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`person_edited_publication` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`person_edited_publication` (
+  `id` INT AUTO_INCREMENT NOT NULL,
   `personKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
   `publicationKey` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
-  PRIMARY KEY (`personKey`, `publicationKey`),
+  PRIMARY KEY (`id`),
   INDEX `fk_person_edited_publication_publication_idx` (`publicationKey` ASC),
   INDEX `fk_person_edited_publication_person_idx` (`personKey` ASC),
   CONSTRAINT `fk_person_edited_publication_person`
@@ -244,9 +247,10 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`person_reviewed_publication` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`person_reviewed_publication` (
+  `id` INT AUTO_INCREMENT NOT NULL,
   `personKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   `publicationKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
-  PRIMARY KEY (`personKey`, `publicationKey`),
+  PRIMARY KEY (`id`),
   INDEX `fk_person_reviewed_publication_publication_idx` (`publicationKey` ASC),
   INDEX `fk_person_reviewed_publication_person_idx` (`personKey` ASC),
   CONSTRAINT `fk_person_reviewed_publication_person`
@@ -304,9 +308,10 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`publication_references` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`publication_references` (
+  `id` INT AUTO_INCREMENT NOT NULL,
   `pub_id` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   `pub2_id` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
-  PRIMARY KEY (`pub_id`, `pub2_id`),
+  PRIMARY KEY (`id`),
   INDEX `fk_publication_references_pub2_idx` (`pub2_id` ASC),
   INDEX `fk_publication_references_pub_idx` (`pub_id` ASC),
   CONSTRAINT `fk_publication_pub1`
@@ -328,9 +333,10 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `schenql-db`.`person_works_for_institution` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`person_works_for_institution` (
+  `id` INT AUTO_INCREMENT NOT NULL,
   `person_dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   `institution_key` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
-  PRIMARY KEY (`person_dblpKey`, `institution_key`),
+  PRIMARY KEY (`id`),
   INDEX `fk_person_works_for_institution_institution_idx` (`institution_key` ASC),
   INDEX `fk_person_works_for_institution_person_idx` (`person_dblpKey` ASC),
   CONSTRAINT `fk_person_works_for_institution_person`

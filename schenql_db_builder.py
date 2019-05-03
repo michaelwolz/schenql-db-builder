@@ -266,13 +266,12 @@ def build_db_from_dblp(data_path, inst_names):
 
     print("\nAdding authors of publications:")
     print("\nFirst adding csv to filesystem")
-    with progressbar.ProgressBar(max_value=progressbar.UnknownLength) as bar:
-        with open(os.path.join(data_path, "person_authored_publication.csv"), "w") as file:
-            csv.writer(file).writerows(person_authored)
-        print("\nLoading data from file to database. This may take some time")
-        query = """LOAD DATA LOCAL INFILE %s INTO TABLE `person_authored_publication`"""
-        cur.execute(query, (os.path.join(data_path, "person_authored_publication.csv"),))
-    bar.finish()
+    with open(os.path.join(data_path, "person_authored_publication.csv"), "w") as file:
+        csv.writer(file).writerows(person_authored)
+
+    print("\nLoading data from file to database. This may take some time")
+    query = """LOAD DATA LOCAL INFILE %s INTO TABLE `person_authored_publication`"""
+    cur.execute(query, (os.path.join(data_path, "person_authored_publication.csv"),))
 
     # with progressbar.ProgressBar(max_value=len(person_authored)) as bar:
     #     for i in range(0, len(person_authored), BATCH_SIZE):
