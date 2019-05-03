@@ -203,33 +203,33 @@ def build_db_from_dblp(data_path, inst_names):
     cur.execute("SET FOREIGN_KEY_CHECKS=0;")
 
     with progressbar.ProgressBar(max_value=len(person_keys)) as bar:
+        query = """INSERT INTO `person` (`dblpKey`) VALUES (%s)"""
         for i in range(0, len(person_keys), BATCH_SIZE):
-            query = """INSERT INTO `person` (`dblpKey`) VALUES (%s)"""
             cur.executemany(query, person_keys[i:i + BATCH_SIZE])
             bar.update(i)
 
     print("\nAdding person names:")
     person_names_list = list(person_names.items())
     with progressbar.ProgressBar(max_value=len(person_names_list)) as bar:
+        query = """INSERT INTO `person_names` (`name`, `personKey`) VALUES (%s, %s)"""
         for i in range(0, len(person_names_list), BATCH_SIZE):
-            query = """INSERT INTO `person_names` (`name`, `personKey`) VALUES (%s, %s)"""
             params = [tuple(el) for el in person_names_list[i: i + BATCH_SIZE]]
             cur.executemany(query, params)
             bar.update(i)
 
     print("\nAdding affiliations of persons:")
     with progressbar.ProgressBar(max_value=len(affiliations)) as bar:
-        for i in range(0, len(affiliations), BATCH_SIZE):
-            query = """INSERT INTO `person_works_for_institution` (`person_dblpKey`, `institution_key`)
+        query = """INSERT INTO `person_works_for_institution` (`person_dblpKey`, `institution_key`)
                                VALUES (%s, %s)"""
+        for i in range(0, len(affiliations), BATCH_SIZE):
             cur.executemany(query, affiliations[i:i + BATCH_SIZE])
             bar.update(i)
 
     print("\nAdding journals:")
     journal_key_dict_list = list(journal_key_dict.items())
     with progressbar.ProgressBar(max_value=len(journal_key_dict_list)) as bar:
+        query = """INSERT INTO `journal` (`dblpKey`, `acronym`) VALUES (%s, %s)"""
         for i in range(0, len(journal_key_dict_list), BATCH_SIZE):
-            query = """INSERT INTO `journal` (`dblpKey`, `acronym`) VALUES (%s, %s)"""
             params = [tuple(el) for el in journal_key_dict_list[i: i + BATCH_SIZE]]
             cur.executemany(query, params)
             bar.update(i)
@@ -237,8 +237,8 @@ def build_db_from_dblp(data_path, inst_names):
     print("\nAdding journal names:")
     journal_name_dict_list = list(journal_name_dict.items())
     with progressbar.ProgressBar(max_value=len(journal_name_dict_list)) as bar:
+        query = """INSERT INTO `journal_name` (`name`, `journalKey`) VALUES (%s, %s)"""
         for i in range(0, len(journal_name_dict_list), BATCH_SIZE):
-            query = """INSERT INTO `journal_name` (`name`, `journalKey`) VALUES (%s, %s)"""
             params = [tuple(el) for el in journal_name_dict_list[i: i + BATCH_SIZE]]
             cur.executemany(query, params)
             bar.update(i)
@@ -246,9 +246,9 @@ def build_db_from_dblp(data_path, inst_names):
     print("\nAdding conferences:")
     conference_key_dict_list = list(conference_key_dict.items())
     with progressbar.ProgressBar(max_value=len(conference_key_dict_list)) as bar:
+        query = """INSERT INTO `conference` (`dblpKey`, `acronym`) VALUES (%s, %s)"""
         for i in range(0, len(conference_key_dict_list), BATCH_SIZE):
             try:
-                query = """INSERT INTO `conference` (`dblpKey`, `acronym`) VALUES (%s, %s)"""
                 params = [tuple(el) for el in conference_key_dict_list[i: i + BATCH_SIZE]]
                 cur.executemany(query, params)
             except mysql.connector.errors.IntegrityError:
@@ -257,10 +257,10 @@ def build_db_from_dblp(data_path, inst_names):
 
     print("\nAdding publications:")
     with progressbar.ProgressBar(max_value=len(publications)) as bar:
-        for i in range(0, len(publications), BATCH_SIZE):
-            query = """INSERT INTO `publication` 
+        query = """INSERT INTO `publication` 
                     (`dblpKey`, `title`, `ee`, `url`, `year`, `volume`, `type`, `conference_dblpKey`, `journal_dblpKey`) 
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+        for i in range(0, len(publications), BATCH_SIZE):
             cur.executemany(query, publications[i:i + BATCH_SIZE])
             bar.update(i)
 
@@ -284,10 +284,10 @@ def build_db_from_dblp(data_path, inst_names):
 
     print("\nAdding editors of publications:")
     with progressbar.ProgressBar(max_value=len(person_edited)) as bar:
-        for i in range(0, len(person_edited), BATCH_SIZE):
-            query = """INSERT INTO `person_edited_publication` (`personKey`, `publicationKey`) 
+        query = """INSERT INTO `person_edited_publication` (`personKey`, `publicationKey`) 
                             VALUES (%s, %s)"""
-            cur.executemany(query, person_edited[i:i + BATCH_SIZE])
+        cur.executemany(query, person_edited[i:i + BATCH_SIZE])
+        for i in range(0, len(person_edited), BATCH_SIZE):
             bar.update(i)
 
     print("\nCommitting changes:")
@@ -405,15 +405,15 @@ def add_s2_data(data_path):
 
     print("\nAdding references:")
     with progressbar.ProgressBar(max_value=len(pub_references_pub2)) as bar:
+        query = """INSERT IGNORE INTO `publication_references` (`pub_id`, `pub2_id`) VALUES (%s, %s)"""
         for i in range(0, len(pub_references_pub2), BATCH_SIZE):
-            query = """INSERT IGNORE INTO `publication_references` (`pub_id`, `pub2_id`) VALUES (%s, %s)"""
             cur.executemany(query, pub_references_pub2[i:i + BATCH_SIZE])
             bar.update(i)
 
     print("\nAdding abstracts:")
     with progressbar.ProgressBar(max_value=len(abstracts)) as bar:
+        query = """UPDATE IGNORE `publication` SET `abstract` = %s WHERE `dblpKey` = %s"""
         for i in range(0, len(abstracts), BATCH_SIZE):
-            query = """UPDATE IGNORE `publication` SET `abstract` = %s WHERE `dblpKey` = %s"""
             try:
                 cur.executemany(query, abstracts[i: i + BATCH_SIZE])
             except mysql.connector.errors.DatabaseError:
@@ -430,8 +430,8 @@ def add_s2_data(data_path):
 
     print("\nAdding keywords to publications:")
     with progressbar.ProgressBar(max_value=len(pub_keywords)) as bar:
+        query = """INSERT IGNORE INTO `publication_has_keyword` (`dblpKey`, `keyword`) VALUES (%s, %s)"""
         for i in range(0, len(pub_keywords), BATCH_SIZE):
-            query = """INSERT IGNORE INTO `publication_has_keyword` (`dblpKey`, `keyword`) VALUES (%s, %s)"""
             cur.executemany(query, pub_keywords[i:i + BATCH_SIZE])
             bar.update(i)
 
