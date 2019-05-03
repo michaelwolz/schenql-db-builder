@@ -283,9 +283,8 @@ def build_db_from_dblp(data_path, inst_names):
             bar.update(i)
 
     print("\nCommitting changes:")
-    with progressbar.ProgressBar(max_value=progressbar.UnknownLength) as bar:
-        db_connection.commit()
-    bar.finish()
+    db_connection.commit()
+
     cur.execute("SET FOREIGN_KEY_CHECKS=1;")
     cur.execute("SET UNIQUE_CHECKS=1;")
     cur.close()
@@ -429,9 +428,7 @@ def add_s2_data(data_path):
             bar.update(i)
 
     print("\nCommitting changes:")
-    with progressbar.ProgressBar(max_value=progressbar.UnknownLength) as bar:
-        db_connection.commit()
-    bar.finish()
+    db_connection.commit()
 
     cur.execute("SET FOREIGN_KEY_CHECKS=1;")
     cur.close()
