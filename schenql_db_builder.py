@@ -388,8 +388,8 @@ def add_s2_data(data_path):
                     # Getting all unique keywords for the publication
                     keyword_tags = xml_root.findall("keyword")
                     keywords_of_pub = set()
-                    for ktag in keyword_tags:
-                        keyword = ktag.text()
+                    for k_tag in keyword_tags:
+                        keyword = k_tag.text
                         if keyword:
                             keywords_of_pub.add(keyword)
                     for keyword in keywords_of_pub:
