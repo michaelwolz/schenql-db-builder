@@ -376,7 +376,7 @@ def add_s2_data(data_path):
                         abstracts.append((abstract.text.strip(), pub_key))
 
                     # Sometimes there are cites to same publication
-                    cites = xml_root.find_all("cite")
+                    cites = xml_root.findall("cite")
                     cited_pubs = set()
                     for cite in cites:
                         cited_pub = cite.get("key")
@@ -386,7 +386,7 @@ def add_s2_data(data_path):
                         pub_references_pub2.append((pub_key, cite))
 
                     # Getting all unique keywords for the publication
-                    keywords_of_pub = xml_root.find_all("keyword")
+                    keywords_of_pub = xml_root.findall("keyword")
                     for kw in keywords_of_pub:
                         keyword = kw.text
                         if keyword and (keyword,) not in keywords:
