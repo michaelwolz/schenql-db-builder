@@ -415,7 +415,7 @@ def add_s2_data(data_path):
 
     print("\nAdding abstracts:")
     with progressbar.ProgressBar(max_value=len(abstracts)) as bar:
-        query = """UPDATE `publication` SET `abstract` = %s WHERE `dblpKey` = %s"""
+        query = """UPDATE IGNORE `publication` SET `abstract` = %s WHERE `dblpKey` = %s"""
         for i in range(0, len(abstracts), BATCH_SIZE):
             try:
                 cur.executemany(query, abstracts[i: i + BATCH_SIZE])
