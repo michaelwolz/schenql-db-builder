@@ -386,12 +386,15 @@ def add_s2_data(data_path):
                         pub_references_pub2.append((pub_key, cite))
 
                     # Getting all unique keywords for the publication
-                    keywords_of_pub = xml_root.findall("keyword")
-                    for kw in keywords_of_pub:
-                        keyword = kw.text
-                        if keyword and (keyword,) not in keywords:
-                            pub_keywords.append((pub_key, keyword))
+                    keyword_tags = xml_root.findall("keyword")
+                    keywords_of_pub = set()
+                    for ktag in keyword_tags:
+                        keyword = ktag.text()
+                        if keyword:
+                            keywords_of_pub.add(keyword)
+                    for keyword in keywords_of_pub:
                         keywords.add((keyword,))
+                        pub_keywords.append((pub_key, keyword))
     bar.finish()
 
     ##################################################
