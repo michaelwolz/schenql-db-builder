@@ -9,7 +9,6 @@ import os
 import re
 import time
 import urllib.request
-import csv
 
 import mysql.connector
 import progressbar
@@ -22,14 +21,15 @@ BATCH_SIZE = 256
 db_connection = None
 
 
-def download_dblp(url, data_path):
+def download_dblp(dblp_url, dblp_dtd_url, data_path):
     """
     Downloading the dblp.xml.gz to the specified data_path for further processing
     :param url: URL to the dblp.xml.gz file (probably: https://dblp.uni-trier.de/xml/dblp.xml.gz)
     :param data_path: Path where the dblp.xml.gz file is saved to
     """
     print("Downloading dblp.xml.gz...")
-    urllib.request.urlretrieve(url, os.path.join(data_path, "dblp.xml.gz"))
+    urllib.request.urlretrieve(dblp_url, os.path.join(data_path, "dblp.xml.gz"))
+    urllib.request.urlretrieve(dblp_dtd_url, os.path.join(data_path, "dblp.dtd"))
     print("Downloading dblp DONE!")
 
 
@@ -370,21 +370,31 @@ def add_s2_data(data_path):
                 counter += 1
                 bar.update(counter)
                 if pub_key:
-                    for elem in xml_root.getchildren():
-                        if elem.tag == "abstract":
-                            abstracts.append((elem.text.strip(), pub_key))
+                    # Sometimes there are two abstracts for one publication, just using the first to find
+                    abstract = xml_root.find("abstract")
+                    if abstract is not None:
+                        abstracts.append((abstract.text.strip(), pub_key))
 
-                        if elem.tag == "cite":
-                            cited_pub = elem.get("key")
-                            if cited_pub:
-                                pub_references_pub2.append((pub_key, cited_pub))
+                    # Sometimes there are cites to same publication
+                    cites = xml_root.findall("cite")
+                    cited_pubs = set()
+                    for cite in cites:
+                        cited_pub = cite.get("key")
+                        if cited_pub:
+                            cited_pubs.add(cited_pub)
+                    for cite in cited_pubs:
+                        pub_references_pub2.append((pub_key, cite))
 
-                        if elem.tag == "keyword":
-                            keyword = elem.text
-                            keywords.add((keyword,))
-                            if keyword:
-                                pub_keywords.append((pub_key, keyword))
-                        elem.clear()
+                    # Getting all unique keywords for the publication
+                    keyword_tags = xml_root.findall("keyword")
+                    keywords_of_pub = set()
+                    for k_tag in keyword_tags:
+                        keyword = k_tag.text
+                        if keyword:
+                            keywords_of_pub.add(keyword)
+                    for keyword in keywords_of_pub:
+                        keywords.add((keyword,))
+                        pub_keywords.append((pub_key, keyword))
     bar.finish()
 
     ##################################################
@@ -394,10 +404,11 @@ def add_s2_data(data_path):
     print("\nInserting semantic scholar data into database...")
     cur = db_connection.cursor()
     cur.execute("SET FOREIGN_KEY_CHECKS=0;")
+    cur.execute("SET UNIQUE_CHECKS=0;")
 
     print("\nAdding references:")
     with progressbar.ProgressBar(max_value=len(pub_references_pub2)) as bar:
-        query = """INSERT IGNORE INTO `publication_references` (`pub_id`, `pub2_id`) VALUES (%s, %s)"""
+        query = """INSERT INTO `publication_references` (`pub_id`, `pub2_id`) VALUES (%s, %s)"""
         for i in range(0, len(pub_references_pub2), BATCH_SIZE):
             cur.executemany(query, pub_references_pub2[i:i + BATCH_SIZE])
             bar.update(i)
@@ -422,7 +433,7 @@ def add_s2_data(data_path):
 
     print("\nAdding keywords to publications:")
     with progressbar.ProgressBar(max_value=len(pub_keywords)) as bar:
-        query = """INSERT IGNORE INTO `publication_has_keyword` (`dblpKey`, `keyword`) VALUES (%s, %s)"""
+        query = """INSERT INTO `publication_has_keyword` (`dblpKey`, `keyword`) VALUES (%s, %s)"""
         for i in range(0, len(pub_keywords), BATCH_SIZE):
             cur.executemany(query, pub_keywords[i:i + BATCH_SIZE])
             bar.update(i)
@@ -431,6 +442,7 @@ def add_s2_data(data_path):
     db_connection.commit()
 
     cur.execute("SET FOREIGN_KEY_CHECKS=1;")
+    cur.execute("SET UNIQUE_CHECKS=1;")
     cur.close()
 
 
@@ -449,6 +461,7 @@ def main():
     config.read("config.ini")
     data_path = config["PATHS"]["DATA-PATH"]
     dblp_url = config["PATHS"]["DBLP-XML"]
+    dblp_dtd_url = config["PATHS"]["DBLP-DTD"]
 
     # Download data
     download = False
@@ -458,7 +471,7 @@ def main():
         download = True
         print("DBLP file not available. Current version of DBLP will be downloaded.")
     if download:
-        download_dblp(dblp_url, data_path)
+        download_dblp(dblp_url, dblp_dtd_url, data_path)
 
     # Connect to database
     global db_connection
