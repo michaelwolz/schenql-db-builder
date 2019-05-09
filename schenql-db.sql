@@ -27,6 +27,7 @@ DROP TABLE IF EXISTS `schenql-db`.`person` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`person` (
   `dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
+  `primary_name` VARCHAR(100),
   `orcid` VARCHAR(20) NULL,
   `h-index` INT NULL,
   PRIMARY KEY (`dblpKey`))
@@ -142,6 +143,8 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`publication` (
   PRIMARY KEY (`dblpKey`),
   INDEX `fk_publication_conference_idx` (`conference_dblpKey` ASC),
   INDEX `fk_publication_journal_idx` (`journal_dblpKey` ASC),
+  FULLTEXT `fulltext_title_idx` (`title`),
+  FULLTEXT `fulltext_abstract_idx` (`abstract`),
   CONSTRAINT `fk_publication_conference`
     FOREIGN KEY (`conference_dblpKey`)
     REFERENCES `schenql-db`.`conference` (`dblpKey`)
@@ -290,11 +293,11 @@ DROP TABLE IF EXISTS `schenql-db`.`institution_name` ;
 CREATE TABLE IF NOT EXISTS `schenql-db`.`institution_name` (
     `id` INT AUTO_INCREMENT NOT NULL,
     `name` VARCHAR(300) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-    `institution_key` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
+    `institutionKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
     PRIMARY KEY (`id`),
-    INDEX `fk_institution_key_idx` (`institution_key` ASC),
-    CONSTRAINT `fk_institution_key`
-        FOREIGN KEY (`institution_key`)
+    INDEX `fk_institutionKey_idx` (`institutionKey` ASC),
+    CONSTRAINT `fk_institutionKey`
+        FOREIGN KEY (`institutionKey`)
         REFERENCES `schenql-db`.`institution` (`key`)
         ON DELETE NO ACTION
         ON UPDATE NO ACTION
@@ -334,18 +337,18 @@ DROP TABLE IF EXISTS `schenql-db`.`person_works_for_institution` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`person_works_for_institution` (
   `id` INT AUTO_INCREMENT NOT NULL,
-  `person_dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
-  `institution_key` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
+  `personKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
+  `institutionKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   PRIMARY KEY (`id`),
-  INDEX `fk_person_works_for_institution_institution_idx` (`institution_key` ASC),
-  INDEX `fk_person_works_for_institution_person_idx` (`person_dblpKey` ASC),
+  INDEX `fk_person_works_for_institution_institution_idx` (`institutionKey` ASC),
+  INDEX `fk_person_works_for_institution_person_idx` (`personKey` ASC),
   CONSTRAINT `fk_person_works_for_institution_person`
-    FOREIGN KEY (`person_dblpKey`)
+    FOREIGN KEY (`personKey`)
     REFERENCES `schenql-db`.`person` (`dblpKey`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_person_works_for_institution_institution`
-    FOREIGN KEY (`institution_key`)
+    FOREIGN KEY (`institutionKey`)
     REFERENCES `schenql-db`.`institution` (`key`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)

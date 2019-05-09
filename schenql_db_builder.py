@@ -56,6 +56,7 @@ def build_db_from_dblp(data_path, inst_names):
     """
     Builds mysql-database from dblp.xml
     :param conn: database connection
+    :param inst_names: dictionary of institution names
     :param data_path: path to dblp.xml.gz
     """
     print("Processing dblp file...")
@@ -85,7 +86,7 @@ def build_db_from_dblp(data_path, inst_names):
         type = elem.tag
 
         # Processing publications
-        if elem.tag in ("article", "inproceedings", "masterthesis", "phdthesis"):
+        if elem.tag in ("article", "inproceedings", "masterthesis", "phdthesis", "book"):
             title = elem.find("title").text if elem.find("title") is not None else None
             ee = elem.find("ee").text if elem.find("ee") is not None else None
             url = elem.find("url").text if elem.find("url") is not None else None
@@ -174,7 +175,7 @@ def build_db_from_dblp(data_path, inst_names):
                 # Add institutions
                 notes = elem.findall("note")
                 for note in notes:
-                    if note.get("affiliation"):
+                    if note.get("type") == "affiliation":
                         if note.text in inst_names:
                             affiliations.append((dblp_key, inst_names[note.text]))
 
@@ -220,7 +221,7 @@ def build_db_from_dblp(data_path, inst_names):
 
     print("\nAdding affiliations of persons:")
     with progressbar.ProgressBar(max_value=len(affiliations)) as bar:
-        query = """INSERT INTO `person_works_for_institution` (`person_dblpKey`, `institution_key`)
+        query = """INSERT INTO `person_works_for_institution` (`personKey`, `institutionKey`)
                                VALUES (%s, %s)"""
         for i in range(0, len(affiliations), BATCH_SIZE):
             cur.executemany(query, affiliations[i:i + BATCH_SIZE])
@@ -267,19 +268,18 @@ def build_db_from_dblp(data_path, inst_names):
 
     print("\nAdding authors of publications:")
     with progressbar.ProgressBar(max_value=len(person_authored)) as bar:
+        query = """INSERT INTO `person_authored_publication` (`personKey`, `publicationKey`)
+                            VALUES (%s, %s)"""
         for i in range(0, len(person_authored), BATCH_SIZE):
-            query = """INSERT INTO `person_authored_publication` (`personKey`, `publicationKey`)
-                    VALUES (%s, %s)"""
             cur.executemany(query, person_authored[i:i + BATCH_SIZE])
-            db_connection.commit()
             bar.update(i)
 
     print("\nAdding editors of publications:")
     with progressbar.ProgressBar(max_value=len(person_edited)) as bar:
         query = """INSERT INTO `person_edited_publication` (`personKey`, `publicationKey`) 
-                            VALUES (%s, %s)"""
-        cur.executemany(query, person_edited[i:i + BATCH_SIZE])
+                                VALUES (%s, %s)"""
         for i in range(0, len(person_edited), BATCH_SIZE):
+            cur.executemany(query, person_edited[i:i + BATCH_SIZE])
             bar.update(i)
 
     print("\nCommitting changes:")
