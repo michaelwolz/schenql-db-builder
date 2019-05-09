@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`publication` (
   `url` VARCHAR(500) NULL,
   `year` INT NULL,
   `volume` VARCHAR(50) NULL,
-  `type` ENUM('article', 'masterthesis', 'inproceedings', 'phdthesis') NULL,
+  `type` ENUM('article', 'masterthesis', 'inproceedings', 'phdthesis', 'book') NULL,
   `conference_dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NULL,
   `journal_dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NULL,
   PRIMARY KEY (`dblpKey`),
