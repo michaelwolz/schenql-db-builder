@@ -334,7 +334,7 @@ def add_inst_data(data_path):
 
     print("\nAdding institution names...")
     inst_names_list = list(inst_names.items())
-    query = """INSERT INTO `institution_name` (`name`, `institution_key`) VALUES (%s, %s)"""
+    query = """INSERT INTO `institution_name` (`name`, `institutionKey`) VALUES (%s, %s)"""
     cur.executemany(query, inst_names_list)
 
     print("\nCommitting changes...")
