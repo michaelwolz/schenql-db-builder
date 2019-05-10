@@ -322,11 +322,12 @@ def add_inst_data(data_path):
                 lon = location.get("lon")
                 location_text = location.text
 
+            primary_name = elem.find("name").text() if elem.find("name") else None
             names = elem.findall("name")
             for name in names:
                 inst_names[name.text] = inst_key
 
-            institutions.append((inst_key, location_text, country, city, lat, lon))
+            institutions.append((inst_key, primary_name, location_text, country, city, lat, lon))
         elem.clear()
 
     ##################################################
@@ -337,8 +338,8 @@ def add_inst_data(data_path):
     cur = db_connection.cursor()
 
     print("\nAdding institution keys...")
-    query = """INSERT INTO `institution` (`key`, `location`, `country`, `city`, `lat` ,`lon`)
-            VALUES (%s, %s, %s, %s, %s, %s)"""
+    query = """INSERT INTO `institution` (`key`, `primaryName`, `location`, `country`, `city`, `lat` ,`lon`)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)"""
     cur.executemany(query, institutions)
 
     print("\nAdding institution names...")
@@ -505,6 +506,7 @@ def main():
     if args.cites or args.all:
         add_s2_data(data_path)
 
+    print("\n###############################\nEnd %s\n###############################\n" % (time.ctime()))
     end = time.time()
     print("Time spent:", end - start, "s")
 
