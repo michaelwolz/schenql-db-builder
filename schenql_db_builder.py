@@ -322,7 +322,7 @@ def add_inst_data(data_path):
                 lon = location.get("lon")
                 location_text = location.text
 
-            primary_name = elem.find("name").text() if elem.find("name") else None
+            primary_name = elem.find("name").text() if elem.find("name") is not None else None
             names = elem.findall("name")
             for name in names:
                 inst_names[name.text] = inst_key
