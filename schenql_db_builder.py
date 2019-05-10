@@ -207,14 +207,14 @@ def build_db_from_dblp(data_path, inst_names):
     ##################################################
 
     print("\nInserting dblp data into the database...")
-    print("\nPerson keys:")
     cur = db_connection.cursor()
 
     cur.execute("SET FOREIGN_KEY_CHECKS=0;")
     cur.execute("SET UNIQUE_CHECKS=0;")
 
+    print("\nPerson keys:")
     with progressbar.ProgressBar(max_value=len(person_keys)) as bar:
-        query = """INSERT INTO `person` (`dblpKey`, `orcid`, `primary_name`) VALUES (%s, %s)"""
+        query = """INSERT INTO `person` (`dblpKey`, `orcid`, `primary_name`) VALUES (%s, %s, %s)"""
         for i in range(0, len(person_keys), BATCH_SIZE):
             cur.executemany(query, person_keys[i:i + BATCH_SIZE])
             bar.update(i)
