@@ -184,7 +184,7 @@ def build_db_from_dblp(data_path, inst_names):
                         orcid = orcids[person.text]
                     person_names[person.text] = dblp_key
 
-                person_keys.append((dblp_key, primary_name, orcid))
+                person_keys.append((dblp_key, orcid, primary_name))
 
                 # Add institutions
                 notes = elem.findall("note")
