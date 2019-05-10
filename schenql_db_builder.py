@@ -71,6 +71,7 @@ def build_db_from_dblp(data_path, inst_names):
     person_keys = []
     person_names = {}
     orcids = {}
+    orcid_regex = re.compile(r"0000-000(1-[5-9]|2-[0-9]|3-[0-4])\d{3}-\d{3}[\dX]")
 
     context = etree.iterparse(gzip.GzipFile(os.path.join(data_path, "dblp.xml.gz")),
                               tag=("article", "masterthesis", "phdthesis", "inproceedings", "book", "www"),
@@ -159,7 +160,10 @@ def build_db_from_dblp(data_path, inst_names):
             for person in authors:
                 if person.get("orcid"):
                     # TODO: This is not 100% correct, but it will work for most cases
-                    orcids[person.text] = person.get("orcid")
+                    orcid = person.get("orcid")
+                    orcid = orcid_regex.search(orcid)
+                    if orcid:
+                        orcids[person.text] = orcid.group()
                 person_authored.append((person.text, dblp_key))
 
             # Adding editors to the publication
