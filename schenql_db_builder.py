@@ -214,7 +214,7 @@ def build_db_from_dblp(data_path, inst_names):
 
     print("\nPerson keys:")
     with progressbar.ProgressBar(max_value=len(person_keys)) as bar:
-        query = """INSERT INTO `person` (`dblpKey`, `orcid`, `primary_name`) VALUES (%s, %s, %s)"""
+        query = """INSERT INTO `person` (`dblpKey`, `orcid`, `primaryName`) VALUES (%s, %s, %s)"""
         for i in range(0, len(person_keys), BATCH_SIZE):
             cur.executemany(query, person_keys[i:i + BATCH_SIZE])
             bar.update(i)
