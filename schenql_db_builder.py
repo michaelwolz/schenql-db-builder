@@ -163,6 +163,7 @@ def build_db_from_dblp(data_path, inst_names):
                     orcid = person.get("orcid")
                     orcid = orcid_regex.search(orcid)
                     if orcid:
+                        print(orcid.group())
                         orcids[person.text] = orcid.group()
                 person_authored.append((person.text, dblp_key))
 
