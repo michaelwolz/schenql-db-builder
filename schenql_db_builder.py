@@ -70,6 +70,7 @@ def build_db_from_dblp(data_path, inst_names):
     person_edited = []
     person_keys = []
     person_names = {}
+    orcids = {}
 
     context = etree.iterparse(gzip.GzipFile(os.path.join(data_path, "dblp.xml.gz")),
                               tag=("article", "masterthesis", "phdthesis", "inproceedings", "book", "www"),
@@ -156,6 +157,9 @@ def build_db_from_dblp(data_path, inst_names):
 
             # Adding authors to the publication
             for person in authors:
+                if person.get("orcid"):
+                    # TODO: This is not 100% correct, but it will work for most cases
+                    orcids[person.text] = person.get("orcid")
                 person_authored.append((person.text, dblp_key))
 
             # Adding editors to the publication
@@ -165,12 +169,17 @@ def build_db_from_dblp(data_path, inst_names):
         # Processing person records
         if elem.tag == "www":
             if dblp_key and dblp_key.startswith("homepages/"):
-                person_keys.append((dblp_key,))
+                primary_name = elem.find("author").text if elem.find("author") is not None else None
 
                 # Add all available names to person record
+                orcid = None
                 persons = elem.findall("author")
                 for person in persons:
+                    if orcid is None and person.text in orcids:
+                        orcid = orcids[person.text]
                     person_names[person.text] = dblp_key
+
+                person_keys.append((dblp_key, primary_name, orcid))
 
                 # Add institutions
                 notes = elem.findall("note")
@@ -205,7 +214,7 @@ def build_db_from_dblp(data_path, inst_names):
     cur.execute("SET UNIQUE_CHECKS=0;")
 
     with progressbar.ProgressBar(max_value=len(person_keys)) as bar:
-        query = """INSERT INTO `person` (`dblpKey`) VALUES (%s)"""
+        query = """INSERT INTO `person` (`dblpKey`, `orcid`, `primary_name`) VALUES (%s, %s)"""
         for i in range(0, len(person_keys), BATCH_SIZE):
             cur.executemany(query, person_keys[i:i + BATCH_SIZE])
             bar.update(i)

@@ -27,7 +27,7 @@ DROP TABLE IF EXISTS `schenql-db`.`person` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`person` (
   `dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
-  `primary_name` VARCHAR(100),
+  `primary_name` VARCHAR(200) NULL,
   `orcid` VARCHAR(20) NULL,
   `h-index` INT NULL,
   PRIMARY KEY (`dblpKey`))
