@@ -164,13 +164,14 @@ def process_dblp(data_path):
 
             authors = elem.findall("author")
             editors = elem.findall("editor")
+            abstract = abstracts[dblp_key] if dblp_key in abstracts else None
 
             # Adding the publications
             publications.append(
                 (
                     dblp_key,
                     title,
-                    abstracts[dblp_key],
+                    abstract,
                     ee,
                     url,
                     year,
