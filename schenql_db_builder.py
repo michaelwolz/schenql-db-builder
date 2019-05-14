@@ -233,6 +233,12 @@ def process_dblp(data_path):
 
 
 def process_institution_data(data_path):
+    """
+    Processing the insitution data from the inst.xml file
+    :param data_path: path to the inst.xml file
+    """
+    print("\nProcessing inst.xml data...")
+
     parser = etree.XMLParser(ns_clean=True, load_dtd=True, collect_ids=False)
     tree = etree.parse(os.path.join(data_path, "inst.xml"), parser)
     xml_root = tree.getroot()
@@ -267,7 +273,7 @@ def process_s2_data(data_path):
     Processing additional semantic scholar data and connecting it with it's references in the dblp
     :param data_path: path of the s2 dataset
     """
-    print("\nProcessing semantic scholar data. This may take even longer...")
+    print("\nProcessing semantic scholar data. This may take some time...")
     folder_regex = re.compile("/(journals|conf|phd|books)/")
 
     bar = progressbar.ProgressBar(max_value=progressbar.UnknownLength)
