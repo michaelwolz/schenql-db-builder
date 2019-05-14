@@ -295,8 +295,8 @@ def build_db_from_dblp(data_path, inst_names):
             cur.executemany(query, person_edited[i:i + BATCH_SIZE])
             bar.update(i)
 
-    print("\nCommitting changes:")
-    db_connection.commit()
+    # print("\nCommitting changes:")
+    # db_connection.commit()
 
     cur.execute("SET FOREIGN_KEY_CHECKS=1;")
     cur.execute("SET UNIQUE_CHECKS=1;")
@@ -351,8 +351,8 @@ def add_inst_data(data_path):
     query = """INSERT INTO `institution_name` (`name`, `institutionKey`) VALUES (%s, %s)"""
     cur.executemany(query, inst_names_list)
 
-    print("\nCommitting changes...")
-    db_connection.commit()
+    # print("\nCommitting changes...")
+    # db_connection.commit()
 
     cur.close()
 
@@ -452,8 +452,8 @@ def add_s2_data(data_path):
             cur.executemany(query, pub_keywords[i:i + BATCH_SIZE])
             bar.update(i)
 
-    print("\nCommitting changes:")
-    db_connection.commit()
+    # print("\nCommitting changes:")
+    # db_connection.commit()
 
     cur.execute("SET FOREIGN_KEY_CHECKS=1;")
     cur.execute("SET UNIQUE_CHECKS=1;")
