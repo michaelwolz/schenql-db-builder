@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`person` (
   `orcid` VARCHAR(20) NULL,
   `h-index` INT NULL,
   PRIMARY KEY (`dblpKey`))
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 
 -- -----------------------------------------------------
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`person_names` (
     REFERENCES `schenql-db`.`person` (`dblpKey`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 
 -- -----------------------------------------------------
@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`conference` (
     REFERENCES `schenql-db`.`state` (`id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 
 -- -----------------------------------------------------
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`journal` (
   `dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   `acronym` VARCHAR(50) NULL,
   PRIMARY KEY (`dblpKey`))
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 
 -- -----------------------------------------------------
@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`journal_name` (
     REFERENCES `schenql-db`.`journal` (`dblpKey`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 
 -- -----------------------------------------------------
@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`publication` (
     REFERENCES `schenql-db`.`journal` (`dblpKey`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 
 -- -----------------------------------------------------
@@ -165,7 +165,7 @@ DROP TABLE IF EXISTS `schenql-db`.`keyword` ;
 CREATE TABLE IF NOT EXISTS `schenql-db`.`keyword` (
   `keyword` VARCHAR(250) NOT NULL,
   PRIMARY KEY (`keyword`))
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 
 -- -----------------------------------------------------
@@ -190,7 +190,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`publication_has_keyword` (
     REFERENCES `schenql-db`.`keyword` (`keyword`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 
 -- -----------------------------------------------------
@@ -215,7 +215,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`person_authored_publication` (
     REFERENCES `schenql-db`.`publication` (`dblpKey`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 
 -- -----------------------------------------------------
@@ -240,7 +240,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`person_edited_publication` (
     REFERENCES `schenql-db`.`publication` (`dblpKey`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 
 -- -----------------------------------------------------
@@ -265,7 +265,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`person_reviewed_publication` (
     REFERENCES `schenql-db`.`publication` (`dblpKey`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 
 -- -----------------------------------------------------
@@ -283,7 +283,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`institution` (
     `lon` FLOAT(10, 6) NULL ,
     PRIMARY KEY (`key`)
 )
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 -- -----------------------------------------------------
 -- Table `schenql-db`.`institution_name`
@@ -302,7 +302,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`institution_name` (
         ON DELETE NO ACTION
         ON UPDATE NO ACTION
 )
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 
 -- -----------------------------------------------------
@@ -327,7 +327,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`publication_references` (
     REFERENCES `schenql-db`.`publication` (`dblpKey`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 
 -- -----------------------------------------------------
@@ -352,7 +352,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`person_works_for_institution` (
     REFERENCES `schenql-db`.`institution` (`key`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
+ENGINE = MyISAM;
 
 
 SET SQL_MODE=@OLD_SQL_MODE;
