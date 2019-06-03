@@ -60,35 +60,8 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`conference` (
   `dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   `acronym` VARCHAR(50) NULL,
   `corerank` VARCHAR(3) NULL,
-  `continent_id` INT NULL,
-  `country_id` INT NULL,
-  `state_id` INT NULL,
-  `city_id` INT NULL,
   PRIMARY KEY (`dblpKey`),
-  INDEX `fk_conference_continent_idx` (`continent_id` ASC),
-  INDEX `fk_conference_country_idx` (`country_id` ASC),
-  INDEX `fk_conference_city_idx` (`city_id` ASC),
-  INDEX `fk_conference_state_idx` (`state_id` ASC),
-  CONSTRAINT `fk_conference_continent`
-    FOREIGN KEY (`continent_id`)
-    REFERENCES `schenql-db`.`continent` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_conference_country`
-    FOREIGN KEY (`country_id`)
-    REFERENCES `schenql-db`.`country` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_conference_city`
-    FOREIGN KEY (`city_id`)
-    REFERENCES `schenql-db`.`city` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_conference_state`
-    FOREIGN KEY (`state_id`)
-    REFERENCES `schenql-db`.`state` (`id`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+  INDEX `conference_acronym_idx` (`acronym` ASC))
 ENGINE = MyISAM;
 
 
@@ -100,7 +73,8 @@ DROP TABLE IF EXISTS `schenql-db`.`journal` ;
 CREATE TABLE IF NOT EXISTS `schenql-db`.`journal` (
   `dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   `acronym` VARCHAR(50) NULL,
-  PRIMARY KEY (`dblpKey`))
+  PRIMARY KEY (`dblpKey`),
+  INDEX `journal_acronym_idx` (`acronym` ASC))
 ENGINE = MyISAM;
 
 
@@ -114,7 +88,8 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`journal_name` (
   `name` VARCHAR(200) NOT NULL,
   `journalKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   PRIMARY KEY (`id`),
-  INDEX `fk_journalKey_idx` (`journalKey`ASC),
+  INDEX `fk_journalKey_idx` (`journalKey` ASC),
+  INDEX `journal_name_name_idx` (`name` ASC),
   CONSTRAINT `fk_journalKey`
     FOREIGN KEY (`journalKey`)
     REFERENCES `schenql-db`.`journal` (`dblpKey`)
@@ -142,6 +117,8 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`publication` (
   PRIMARY KEY (`dblpKey`),
   INDEX `fk_publication_conference_idx` (`conference_dblpKey` ASC),
   INDEX `fk_publication_journal_idx` (`journal_dblpKey` ASC),
+  INDEX `publication_year_idx` (`year`),
+  INDEX `type_idx` (`type`),
   FULLTEXT `fulltext_title_idx` (`title`),
   FULLTEXT `fulltext_abstract_idx` (`abstract`),
   CONSTRAINT `fk_publication_conference`
