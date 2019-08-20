@@ -337,7 +337,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`conference_name` (
   `acronym` VARCHAR(50) NOT NULL,
   `title` VARCHAR(500) NOT NULL,
   PRIMARY KEY (`id`),
-  INDEX `fk_acronym_idx` (`acronym` ASC)
+  INDEX `fk_acronym_idx` (`acronym` ASC))
 ENGINE = MyISAM;
 
 
