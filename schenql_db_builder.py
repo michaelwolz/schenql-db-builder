@@ -420,7 +420,7 @@ def build_database():
 
     print("\nAdding conferences:")
     conference_key_dict_values = conference_key_dict.values()
-    with progressbar.ProgressBar(max_value=len(conference_key_dict_list)) as bar:
+    with progressbar.ProgressBar(max_value=len(conference_key_dict_values)) as bar:
         query = """INSERT INTO `conference` (`dblpKey`, `acronym`, `name`) VALUES (%s, %s, %s)"""
         for i in range(0, len(conference_key_dict_values), BATCH_SIZE):
             try:
