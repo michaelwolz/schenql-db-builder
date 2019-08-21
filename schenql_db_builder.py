@@ -163,7 +163,11 @@ def process_dblp(data_path):
 
                     # Add conference if not exist
                     if conference_key not in conference_key_dict:
-                        conference_key_dict[conference_key] = (conference_key, acronym, conference_names[acronym])
+                        conference_key_dict[conference_key] = (
+                            conference_key,
+                            acronym,
+                            conference_names[acronym] if acronym in conference_names else None
+                        )
 
             authors = elem.findall("author")
             editors = elem.findall("editor")
