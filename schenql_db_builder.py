@@ -395,8 +395,7 @@ def build_database():
 
     print("\nAdding affiliations of persons:")
     with progressbar.ProgressBar(max_value=len(affiliations)) as bar:
-        query = """INSERT INTO `person_works_for_institution` (`personKey`, `institutionKey`)
-                               VALUES (%s, %s)"""
+        query = """INSERT INTO `person_works_for_institution` (`personKey`, `institutionKey`) VALUES (%s, %s)"""
         for i in range(0, len(affiliations), BATCH_SIZE):
             cur.executemany(query, affiliations[i:i + BATCH_SIZE])
             bar.update(i)
@@ -425,7 +424,7 @@ def build_database():
         query = """INSERT INTO `conference` (`dblpKey`, `acronym`, `name`) VALUES (%s, %s, %s)"""
         for i in range(0, len(conference_key_dict_list), BATCH_SIZE):
             try:
-                params = [tuple(el) for el in conference_key_dict_list[i: i + BATCH_SIZE]]
+                params = [el for el in conference_key_dict_list[i: i + BATCH_SIZE]]
                 cur.executemany(query, params)
             except mysql.connector.errors.IntegrityError:
                 pass
