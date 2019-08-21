@@ -419,21 +419,20 @@ def build_database():
             bar.update(i)
 
     print("\nAdding conferences:")
-    conference_key_dict_list = list(conference_key_dict.items())
+    conference_key_dict_values = conference_key_dict.values()
     with progressbar.ProgressBar(max_value=len(conference_key_dict_list)) as bar:
         query = """INSERT INTO `conference` (`dblpKey`, `acronym`, `name`) VALUES (%s, %s, %s)"""
-        for i in range(0, len(conference_key_dict_list), BATCH_SIZE):
+        for i in range(0, len(conference_key_dict_values), BATCH_SIZE):
             try:
-                params = [el for el in conference_key_dict_list[i: i + BATCH_SIZE]]
-                cur.executemany(query, params)
+                cur.executemany(query, conference_key_dict_values[i: i + BATCH_SIZE])
             except mysql.connector.errors.IntegrityError:
                 pass
             bar.update(i)
 
     print("\nAdding publications:")
     with progressbar.ProgressBar(max_value=len(publications)) as bar:
-        query = """INSERT INTO `publication` 
-                    (`dblpKey`, `title`, `abstract`, `ee`, `url`, `year`, `volume`, `type`, `conference_dblpKey`, `journal_dblpKey`) 
+        query = """INSERT INTO `publication`
+                    (`dblpKey`, `title`, `abstract`, `ee`, `url`, `year`, `volume`, `type`, `conference_dblpKey`, `journal_dblpKey`)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         for i in range(0, len(publications), BATCH_SIZE):
             cur.executemany(query, publications[i:i + BATCH_SIZE])
@@ -449,7 +448,7 @@ def build_database():
 
     print("\nAdding editors of publications:")
     with progressbar.ProgressBar(max_value=len(person_edited)) as bar:
-        query = """INSERT INTO `person_edited_publication` (`personKey`, `publicationKey`) 
+        query = """INSERT INTO `person_edited_publication` (`personKey`, `publicationKey`)
                                 VALUES (%s, %s)"""
         for i in range(0, len(person_edited), BATCH_SIZE):
             cur.executemany(query, person_edited[i:i + BATCH_SIZE])
