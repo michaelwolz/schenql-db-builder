@@ -24,7 +24,6 @@ db_connection = None
 
 # DBLP Variables
 affiliations = []
-conference_key_dict = {}
 journal_key_dict = {}
 journal_name_dict = {}
 publications = []
@@ -36,6 +35,10 @@ person_names = {}
 # Institution Variables
 inst_names = {}
 institutions = []
+
+# Conferences
+conference_key_dict = {}
+conference_names = {}
 
 # Semantic Scholar Variables
 pub_references_pub2 = []
@@ -160,7 +163,7 @@ def process_dblp(data_path):
 
                     # Add conference if not exist
                     if conference_key not in conference_key_dict:
-                        conference_key_dict[conference_key] = acronym
+                        conference_key_dict[conference_key] = (conference_key, acronym, conference_names[acronym])
 
             authors = elem.findall("author")
             editors = elem.findall("editor")
@@ -322,6 +325,25 @@ def process_s2_data(data_path):
     bar.finish()
 
 
+def process_conference_names(data_path):
+    """
+    Processing the conference names from the conferences.xml file
+    :param data_path: path to the conferences.xml file
+    """
+    print("\nProcessing conferences.xml data...")
+
+    parser = etree.XMLParser(ns_clean=True, load_dtd=True, collect_ids=False)
+    tree = etree.parse(os.path.join(data_path, "conferences.xml"), parser)
+    xml_root = tree.getroot()
+
+    for elem in xml_root.getchildren():
+        acronym = elem.find("acronym").text if elem.find("acronym") is not None else None
+        name = elem.find("title").text if elem.find("title") is not None else None
+        if acronym and name:
+            conference_names[acronym] = name
+        elem.clear()
+
+
 def build_database():
     """
     Builds the relational database based on the processed data of the dblp,
@@ -396,7 +418,7 @@ def build_database():
     print("\nAdding conferences:")
     conference_key_dict_list = list(conference_key_dict.items())
     with progressbar.ProgressBar(max_value=len(conference_key_dict_list)) as bar:
-        query = """INSERT INTO `conference` (`dblpKey`, `acronym`) VALUES (%s, %s)"""
+        query = """INSERT INTO `conference` (`dblpKey`, `acronym`, `name`) VALUES (%s, %s, %s)"""
         for i in range(0, len(conference_key_dict_list), BATCH_SIZE):
             try:
                 params = [tuple(el) for el in conference_key_dict_list[i: i + BATCH_SIZE]]
@@ -503,6 +525,7 @@ def main():
 
     process_institution_data(data_path)
     process_s2_data(data_path)
+    process_conference_names(data_path)
     process_dblp(data_path)
     build_database()
 

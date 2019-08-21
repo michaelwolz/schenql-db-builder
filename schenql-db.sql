@@ -54,6 +54,7 @@ DROP TABLE IF EXISTS `schenql-db`.`conference` ;
 CREATE TABLE IF NOT EXISTS `schenql-db`.`conference` (
   `dblpKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
   `acronym` VARCHAR(50) NULL,
+  `name`    VARCHAR(200) NULL,
   `corerank` VARCHAR(3) NULL,
   PRIMARY KEY (`dblpKey`),
   INDEX `conference_acronym_idx` (`acronym` ASC))
