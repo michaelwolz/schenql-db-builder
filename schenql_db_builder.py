@@ -166,7 +166,7 @@ def process_dblp(data_path):
                         conference_key_dict[conference_key] = (
                             conference_key,
                             acronym,
-                            conference_names[acronym] if acronym in conference_names else None
+                            conference_names[acronym] if acronym.lower() in conference_names else None
                         )
 
             authors = elem.findall("author")
@@ -344,7 +344,7 @@ def process_conference_names(data_path):
         acronym = elem.find("acronym").text if elem.find("acronym") is not None else None
         name = elem.find("title").text if elem.find("title") is not None else None
         if acronym and name:
-            conference_names[acronym] = name
+            conference_names[acronym.lower()] = name
         elem.clear()
 
 
