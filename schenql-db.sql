@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`person` (
   `primaryName` VARCHAR(200) NULL,
   `orcid` VARCHAR(20) NULL,
   `h-index` INT NULL,
-  PRIMARY KEY (`dblpKey`)),
+  PRIMARY KEY (`dblpKey`),
   INDEX `primaryName_idx` (`primaryName` ASC))
 ENGINE = MyISAM;
 
