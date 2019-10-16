@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`person` (
   `primaryName` VARCHAR(200) NULL,
   `orcid` VARCHAR(20) NULL,
   `h-index` INT NULL,
-  PRIMARY KEY (`dblpKey`))
+  PRIMARY KEY (`dblpKey`)),
+  INDEX `primaryName_idx` (`primaryName` ASC))
 ENGINE = MyISAM;
 
 
@@ -34,10 +35,12 @@ ENGINE = MyISAM;
 DROP TABLE IF EXISTS `schenql-db`.`person_names` ;
 
 CREATE TABLE IF NOT EXISTS `schenql-db`.`person_names` (
-  `name` VARCHAR(200) COLLATE utf8mb4_bin NOT NULL,
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(200) NOT NULL,
   `personKey` VARCHAR(100) COLLATE utf8mb4_bin NOT NULL,
-  PRIMARY KEY (`name`),
+  PRIMARY KEY (`id`),
   INDEX `fk_personKey_idx` (`personKey` ASC),
+  INDEX `name_idx` (`name`),
   CONSTRAINT `fk_personKey`
     FOREIGN KEY (`personKey`)
     REFERENCES `schenql-db`.`person` (`dblpKey`)
@@ -290,6 +293,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`publication_references` (
   PRIMARY KEY (`id`),
   INDEX `fk_publication_references_pub2_idx` (`pub2_id` ASC),
   INDEX `fk_publication_references_pub_idx` (`pub_id` ASC),
+  INDEX `pub_pub2_idx` (`pub_id`, `pub2_id`),
   CONSTRAINT `fk_publication_pub1`
     FOREIGN KEY (`pub_id`)
     REFERENCES `schenql-db`.`publication` (`dblpKey`)
