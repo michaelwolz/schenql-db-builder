@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS `schenql-db`.`publication` (
   INDEX `fk_publication_journal_idx` (`journal_dblpKey` ASC),
   INDEX `publication_year_idx` (`year`),
   INDEX `type_idx` (`type`),
+  INDEX `title_idx` (`title`(191)),
   FULLTEXT `fulltext_title_idx` (`title`),
   FULLTEXT `fulltext_abstract_idx` (`abstract`),
   CONSTRAINT `fk_publication_conference`
